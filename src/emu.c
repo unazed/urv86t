@@ -6,60 +6,6 @@
 #define SIGNEXT(word, sign_bit) \
   (((word) & (sign_bit))? ((word) | ~((sign_bit) - 1)): (word))
 
-#ifdef DEBUG
-# define _INSN_MAP_ENTRY(insn) [RV_INSN__##insn] = #insn
-const char* const e_insn_map[] = {
-  _INSN_MAP_ENTRY(LUI),
-  _INSN_MAP_ENTRY(AUIPC),
-  _INSN_MAP_ENTRY(JAL),
-  _INSN_MAP_ENTRY(JALR),
-  _INSN_MAP_ENTRY(BEQ),
-  _INSN_MAP_ENTRY(BNE),
-  _INSN_MAP_ENTRY(BLT),
-  _INSN_MAP_ENTRY(BGE),
-  _INSN_MAP_ENTRY(BLTU),
-  _INSN_MAP_ENTRY(BGEU),
-  _INSN_MAP_ENTRY(LB),
-  _INSN_MAP_ENTRY(LH),
-  _INSN_MAP_ENTRY(LW),
-  _INSN_MAP_ENTRY(LBU),
-  _INSN_MAP_ENTRY(LHU),
-  _INSN_MAP_ENTRY(SB),
-  _INSN_MAP_ENTRY(SH),
-  _INSN_MAP_ENTRY(SW),
-  _INSN_MAP_ENTRY(ADDI),
-  _INSN_MAP_ENTRY(SLTI),
-  _INSN_MAP_ENTRY(SLTIU),
-  _INSN_MAP_ENTRY(XORI),
-  _INSN_MAP_ENTRY(ORI),
-  _INSN_MAP_ENTRY(ANDI),
-  _INSN_MAP_ENTRY(SLLI),
-  _INSN_MAP_ENTRY(SRLI),
-  _INSN_MAP_ENTRY(SRAI),
-  _INSN_MAP_ENTRY(ADD),
-  _INSN_MAP_ENTRY(SUB),
-  _INSN_MAP_ENTRY(SLL),
-  _INSN_MAP_ENTRY(SLT),
-  _INSN_MAP_ENTRY(SLTU),
-  _INSN_MAP_ENTRY(XOR),
-  _INSN_MAP_ENTRY(SRL),
-  _INSN_MAP_ENTRY(SRA),
-  _INSN_MAP_ENTRY(OR),
-  _INSN_MAP_ENTRY(AND),
-  _INSN_MAP_ENTRY(FENCE),
-  _INSN_MAP_ENTRY(FENCE_I),
-  _INSN_MAP_ENTRY(ECALL),
-  _INSN_MAP_ENTRY(EBREAK),
-  _INSN_MAP_ENTRY(CSRRW),
-  _INSN_MAP_ENTRY(CSRRS),
-  _INSN_MAP_ENTRY(CSRRC),
-  _INSN_MAP_ENTRY(CSRRWI),
-  _INSN_MAP_ENTRY(CSRRSI),
-  _INSN_MAP_ENTRY(CSRRCI)
-};
-# undef _INSN_MAP_ENTRY
-#endif
-
 static inline enum e_insn
 rv_insn_decode_Ity__1 (union insn_base insn)
 {
@@ -223,8 +169,9 @@ rv_insn_decode_Ity (union insn_base insn)
   }
 
   rv_trbk_debug (
-    "\tI-type %s rd=%" PRIu8 " rs1=%" PRIu8 " imm=%" PRIi16 "\n",
-    e_insn_map[canon_insn.insn_ty], canon_insn.rd, canon_insn.rs1,
+    "\tI-type %s %s, %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty],
+    repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
     canon_insn.imm
   );
 
@@ -250,7 +197,7 @@ rv_insn_decode_Sty (union insn_base insn)
 
   rv_trbk_debug (
     "\tS-type %s rs1=%" PRIu8 " rs2=%" PRIu8 " imm=%" PRIi16 "\n",
-    e_insn_map[canon_insn.insn_ty], canon_insn.rs1, canon_insn.rs2,
+    repr_insn_map[canon_insn.insn_ty], canon_insn.rs1, canon_insn.rs2,
     canon_insn.imm
   );
 

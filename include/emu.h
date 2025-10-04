@@ -2,6 +2,11 @@
 
 #include "platform.h"
 
+#ifdef DEBUG
+extern const char* const repr_insn_map[];
+extern const char* const repr_reg_abi_map[];
+#endif
+
 struct rv_state
 {
   /* `regs` determined at run-time, RVxxE/I have different # of regs. */

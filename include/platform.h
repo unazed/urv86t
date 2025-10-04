@@ -79,10 +79,6 @@ enum e_insn
   RV_INSN__CSRRCI
 };
 
-#ifdef DEBUG
-const char* const e_insn_map[];
-#endif
-
 typedef struct
 {
   enum e_insn insn_ty;

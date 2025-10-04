@@ -18,6 +18,9 @@
 #define RISCV_INSN_OPCOND__J(n) ((n) == 0b1101111ul)
 #define RISCV_INSN_OPCOND__B(n) ((n) == 0b1100011ul)
 
+#define SIGNEXT(word, sign_bit) \
+  (((word) & (sign_bit))? ((word) | ~((sign_bit) - 1)): (word))
+
 #ifdef ENABLE_RV32I
 # define RISCV_REGCOUNT (32)
 # define RISCV_XLEN_BYTES (4)

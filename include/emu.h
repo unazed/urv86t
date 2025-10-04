@@ -23,11 +23,9 @@ struct rv_state
 typedef struct rv_state* rv_state_t;
 
 __attribute__ (( malloc ))
-rv_state_t rv_state_alloc (void);
+rv_state_t rvstate_alloc (void);
 
-void rv_state_free (rv_state_t state);
+void rvstate_free (rv_state_t state);
 
-bool rv_emu_init (size_t len;
+bool rvemu_init (size_t len;
   rv_state_t state, u8* const code, size_t len);
-
-insn_t rv_insn_decode (word_t bytes);

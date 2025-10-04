@@ -1,6 +1,10 @@
 int
 main (void)
 {
-	volatile int a = 5;
-	return 0;
+	int a = 5;
+	while (a > 1)
+		--a;
+	const char* s = "hello, world!";
+	printf ("%s\n", s);
+	return a;
 }

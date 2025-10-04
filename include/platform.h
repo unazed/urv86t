@@ -5,18 +5,18 @@
 /* todo: conditional IALIGN based on supported extensions */
 #define RISCV_IALIGN_BYTES (4)
 
-#define RISCV_INSN_OPCOND__R(n) ((n) & 0b0110011ul)
+#define RISCV_INSN_OPCOND__R(n) ((n) == 0b0110011ul)
 #define RISCV_INSN_OPCOND__I(n) \
   ( \
-    ((n) & 0b1100111ul) || ((n) & 0b0000011ul) \
-    || ((n) & 0b0010011ul) || ((n) & 0b0001111ul) \
-    || ((n) & 0b1110011ul) \
+    ((n) == 0b1100111ul) || ((n) == 0b0000011ul) \
+    || ((n) == 0b0010011ul) || ((n) == 0b0001111ul) \
+    || ((n) == 0b1110011ul) \
   )
-#define RISCV_INSN_OPCOND__S(n) ((n) & 0b0100011ul)
+#define RISCV_INSN_OPCOND__S(n) ((n) == 0b0100011ul)
 #define RISCV_INSN_OPCOND__U(n) \
-  (((n) & 0b0010111ul) || ((n) & 0b0110111ul))
-#define RISCV_INSN_OPCOND__J(n) ((n) & 0b1101111ul)
-#define RISCV_INSN_OPCOND__B(n) ((n) & 0b1100011ul)
+  (((n) == 0b0010111ul) || ((n) == 0b0110111ul))
+#define RISCV_INSN_OPCOND__J(n) ((n) == 0b1101111ul)
+#define RISCV_INSN_OPCOND__B(n) ((n) == 0b1100011ul)
 
 #ifdef ENABLE_RV32I
 # define RISCV_REGCOUNT (32)
@@ -78,6 +78,10 @@ enum e_insn
   RV_INSN__CSRRSI,
   RV_INSN__CSRRCI
 };
+
+#ifdef DEBUG
+const char* const e_insn_map[];
+#endif
 
 typedef struct
 {

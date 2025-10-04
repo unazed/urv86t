@@ -1,9 +1,64 @@
 #include <stdlib.h>
 
 #include "emu.h"
+#include "traceback.h"
 
 #define SIGNEXT(word, sign_bit) \
   (((word) & (sign_bit))? ((word) | ~((sign_bit) - 1)): (word))
+
+#ifdef DEBUG
+# define _INSN_MAP_ENTRY(insn) [RV_INSN__##insn] = #insn
+const char* const e_insn_map[] = {
+  _INSN_MAP_ENTRY(LUI),
+  _INSN_MAP_ENTRY(AUIPC),
+  _INSN_MAP_ENTRY(JAL),
+  _INSN_MAP_ENTRY(JALR),
+  _INSN_MAP_ENTRY(BEQ),
+  _INSN_MAP_ENTRY(BNE),
+  _INSN_MAP_ENTRY(BLT),
+  _INSN_MAP_ENTRY(BGE),
+  _INSN_MAP_ENTRY(BLTU),
+  _INSN_MAP_ENTRY(BGEU),
+  _INSN_MAP_ENTRY(LB),
+  _INSN_MAP_ENTRY(LH),
+  _INSN_MAP_ENTRY(LW),
+  _INSN_MAP_ENTRY(LBU),
+  _INSN_MAP_ENTRY(LHU),
+  _INSN_MAP_ENTRY(SB),
+  _INSN_MAP_ENTRY(SH),
+  _INSN_MAP_ENTRY(SW),
+  _INSN_MAP_ENTRY(ADDI),
+  _INSN_MAP_ENTRY(SLTI),
+  _INSN_MAP_ENTRY(SLTIU),
+  _INSN_MAP_ENTRY(XORI),
+  _INSN_MAP_ENTRY(ORI),
+  _INSN_MAP_ENTRY(ANDI),
+  _INSN_MAP_ENTRY(SLLI),
+  _INSN_MAP_ENTRY(SRLI),
+  _INSN_MAP_ENTRY(SRAI),
+  _INSN_MAP_ENTRY(ADD),
+  _INSN_MAP_ENTRY(SUB),
+  _INSN_MAP_ENTRY(SLL),
+  _INSN_MAP_ENTRY(SLT),
+  _INSN_MAP_ENTRY(SLTU),
+  _INSN_MAP_ENTRY(XOR),
+  _INSN_MAP_ENTRY(SRL),
+  _INSN_MAP_ENTRY(SRA),
+  _INSN_MAP_ENTRY(OR),
+  _INSN_MAP_ENTRY(AND),
+  _INSN_MAP_ENTRY(FENCE),
+  _INSN_MAP_ENTRY(FENCE_I),
+  _INSN_MAP_ENTRY(ECALL),
+  _INSN_MAP_ENTRY(EBREAK),
+  _INSN_MAP_ENTRY(CSRRW),
+  _INSN_MAP_ENTRY(CSRRS),
+  _INSN_MAP_ENTRY(CSRRC),
+  _INSN_MAP_ENTRY(CSRRWI),
+  _INSN_MAP_ENTRY(CSRRSI),
+  _INSN_MAP_ENTRY(CSRRCI)
+};
+# undef _INSN_MAP_ENTRY
+#endif
 
 static inline enum e_insn
 rv_insn_decode_Ity__1 (union insn_base insn)
@@ -128,6 +183,8 @@ rv_insn_decode_Rty (union insn_base insn)
     .funct = (insn.r.funct7 << 3) | insn.r.funct3
   };
 
+  rv_trbk_debug ("\tR-type imm[11:0]: %" PRIi16 "\n", canon_insn.imm);
+  
   switch (canon_insn.funct)
   {
     _INSN_CASE(0b0000000000, RV_INSN__ADD);
@@ -165,6 +222,12 @@ rv_insn_decode_Ity (union insn_base insn)
     _INSN_OP_CASE(0b1110011, 5);
   }
 
+  rv_trbk_debug (
+    "\tI-type %s rd=%" PRIu8 " rs1=%" PRIu8 " imm=%" PRIi16 "\n",
+    e_insn_map[canon_insn.insn_ty], canon_insn.rd, canon_insn.rs1,
+    canon_insn.imm
+  );
+
   return canon_insn;
 }
 
@@ -184,6 +247,12 @@ rv_insn_decode_Sty (union insn_base insn)
     _INSN_CASE(0b001, RV_INSN__SH);
     _INSN_CASE(0b010, RV_INSN__SW);
   }
+
+  rv_trbk_debug (
+    "\tS-type %s rs1=%" PRIu8 " rs2=%" PRIu8 " imm=%" PRIi16 "\n",
+    e_insn_map[canon_insn.insn_ty], canon_insn.rs1, canon_insn.rs2,
+    canon_insn.imm
+  );
 
   return canon_insn;
 }
@@ -265,22 +334,37 @@ rv_insn_decode (word_t bytes)
 {
   auto as_base = (union insn_base)bytes;
   if (RISCV_INSN_OPCOND__R(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding R-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Rty (as_base);
+  }
   else if (RISCV_INSN_OPCOND__I(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding I-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Ity (as_base);
+  }
   else if (RISCV_INSN_OPCOND__S(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding S-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Sty (as_base);
+  }
   else if (RISCV_INSN_OPCOND__U(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding U-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Uty (as_base);
+  }
   else if (RISCV_INSN_OPCOND__J(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding J-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Jty (as_base);
+  }
   else if (RISCV_INSN_OPCOND__B(as_base.x.opcode))
+  {
+    rv_trbk_debug ("decoding B-format insn. (%08" PRIx32 ")\n", bytes);
     return rv_insn_decode_Bty (as_base);
+  }
   __builtin_unreachable ();
 }
-
-#include <inttypes.h>
-#include <stdio.h>
 
 bool
 rv_emu_init (rv_state_t state, u8* const code, size_t len)
@@ -289,10 +373,7 @@ rv_emu_init (rv_state_t state, u8* const code, size_t len)
   while (state->pc < len)
   {
     insn_t decoded_insn = rv_insn_decode (*(word_t *)(code + state->pc));
-    printf ("+0x%x: insn_ty=%d, rd=%" PRIx8 " rs1=%" PRIx8 " rs2=%" PRIx8
-      " funct=%" PRIx16 " imm=%" PRIi32 "\n",
-      state->pc, decoded_insn.insn_ty, decoded_insn.rd, decoded_insn.rs1, decoded_insn.rs2,
-      decoded_insn.funct, decoded_insn.imm);
+    (void)decoded_insn;
     state->pc += 4;
   }
 

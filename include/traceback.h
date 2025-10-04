@@ -1,6 +1,15 @@
 #pragma once
 
+#include <inttypes.h>
+#include <stdio.h>
+
 #include "emu.h"
+
+#ifdef DEBUG
+# define rv_trbk_debug(fmt, ...) printf (fmt,##__VA_ARGS__)
+#else
+# define rv_trbk_debug(fmt, ...)
+#endif
 
 struct emu_traceback_ctx
 {

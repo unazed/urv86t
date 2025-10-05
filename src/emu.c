@@ -6,16 +6,25 @@
 rvstate_t
 rvstate_init (u8* const code, size_t len)
 {
+  rvtrbk_debug ("allocating emulation context\n");
   rvstate_t state = calloc (1, sizeof (struct rvstate));
+  if (state == NULL)
+    rvtrbk_fatal ("failed to allocate emulation context\n");
+
   state->regs = calloc (RISCV_XLEN_BYTES, RISCV_REGCOUNT);
+  if (state->regs == NULL)
+    rvtrbk_fatal ("failed to allocate emulation registers\n");
+
   state->mem.ptr = code;
   state->mem.size = len;
+
   return state;
 }
 
 void
 rvstate_free (rvstate_t state)
 {
+  rvtrbk_debug ("finalising emulation state\n");
   free (state->regs);
   free (state);
 }
@@ -29,14 +38,15 @@ rvstate_fetch (rvstate_t state)
 }
 
 bool
-rvemu_init (rvstate_t state)
+rvemu_step (rvstate_t state)
 {
-  while (state->pc < state->mem.size)
-  {
-    auto insn = rvdec_insn (rvstate_fetch (state));
-    if (insn.insn_ty == RV_INSN__INVALID)
-      return false;
-    rvemu_dispatch (state, insn);
-  }
+  if (state->suspended)
+    return false;
+  if (state->pc >= state->mem.size)
+    return false;
+  auto insn = rvdec_insn (state, rvstate_fetch (state));
+  if (insn.insn_ty == RV_INSN__INVALID)
+    return false;
+  rvemu_dispatch (state, insn);
   return true;
 }

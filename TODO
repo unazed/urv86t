@@ -2,5 +2,4 @@
   or invalid internal emulator states
 - core dumping: register info, surrounding stack bytes, current insn and
   encoding info, etc.
-- manual insn step control 
 - compressed insn. extension and rv64i support

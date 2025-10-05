@@ -10,6 +10,7 @@ extern const char* const repr_reg_abi_map[];
 struct rvstate
 {
   /* `regs` determined at run-time, RVxxE/I have different # of regs. */
+  bool suspended;
   reg_t* regs;
   reg_t pc;
   struct
@@ -26,7 +27,7 @@ __attribute__ (( malloc ))
 rvstate_t rvstate_init (u8* const code, size_t len);
 void rvstate_free (rvstate_t state);
 
-bool rvemu_init (rvstate_t state);
+bool rvemu_step (rvstate_t state);
 void rvemu_dispatch (rvstate_t state, insn_t insn);
 
-insn_t rvdec_insn (word_t bytes);
+insn_t rvdec_insn (rvstate_t state, word_t bytes);

@@ -6,21 +6,13 @@
 #include "emu.h"
 
 #ifdef DEBUG
-# define rv_trbk_debug(fmt, ...) printf (fmt,##__VA_ARGS__)
+# define rvtrbk_debug(fmt, ...) printf ("d: "fmt,##__VA_ARGS__)
 #else
-# define rv_trbk_debug(fmt, ...)
+# define rvtrbk_debug(fmt, ...)
 #endif
 
-struct emu_traceback_ctx
-{
-  struct
-  {
-    const char* const repr_insn;
-    
-  } diagnostics;
-  const rvstate_t state;
-};
+__attribute__ (( noreturn ))
+void rvtrbk_fatal (const char* const msg);
 
-extern struct emu_traceback_ctx g_trbk_ctx;
-
-void rv_trbk_init (const char* const src_path);
+void rvtrbk_diagn (rvstate_t state, const char* const msg);
+void rvtrbk_print_dump (rvstate_t state);

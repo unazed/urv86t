@@ -47,8 +47,7 @@ main (int argc, char** argv)
     return EXIT_FAILURE;
   } 
 
-  if (!rvemu_init (emu_state))
-    fprintf (stderr, "emulation finished with errors\n");
+  while (rvemu_step (emu_state));
 
 clean:
   rvstate_free (emu_state);

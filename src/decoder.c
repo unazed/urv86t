@@ -1,20 +1,19 @@
-#include "decoder.h"
 #include "traceback.h"
 
 #define _INSN_CASE(funct, enum_) \
   case (funct): canon_insn.insn_ty = enum_; break;
 #define _INSN_OP_CASE(opcode, grp) \
-  case (opcode): canon_insn.insn_ty = rvdec_Ity__##grp (insn); break;
+  case (opcode): canon_insn.insn_ty = rvdec_Ity__##grp (state, insn); break;
 
 static inline enum e_insn
-rvdec_Ity__1 (union insn_base insn)
+rvdec_Ity__1 (rvstate_t state, union insn_base insn)
 {
-  (void)insn;
+  (void)state; (void)insn;
   return RV_INSN__JALR;
 }
 
 static inline enum e_insn
-rvdec_Ity__2 (union insn_base insn)
+rvdec_Ity__2 (rvstate_t state, union insn_base insn)
 {
   switch (insn.i.funct3)
   {
@@ -25,12 +24,13 @@ rvdec_Ity__2 (union insn_base insn)
     case 0b100: return RV_INSN__LBU;
     case 0b101: return RV_INSN__LHU;
     default:
-      __builtin_unreachable ();
+      rvtrbk_diagn (state, "unrecognised LOAD insn. function bits");
+      return RV_INSN__INVALID;
   }
 }
 
 static inline enum e_insn
-rvdec_Ity__3 (union insn_base insn)
+rvdec_Ity__3 (rvstate_t state, union insn_base insn)
 {
   /* signed arithm. insns. */
   switch (insn.i.funct3)
@@ -49,16 +49,16 @@ rvdec_Ity__3 (union insn_base insn)
     case 0b101:
       if (!insn.x.funct7)
         return RV_INSN__SRLI;
-      if (insn.x.funct7 & 0100000)
+      if (insn.x.funct7 == 0b0100000)
         return RV_INSN__SRAI;
-      __builtin_unreachable ();
-      break;
+      rvtrbk_diagn (state, "unrecognised shift insn. function bits");
+      return RV_INSN__INVALID;
   }
   __builtin_unreachable ();
 }
 
 static inline enum e_insn
-rvdec_Ity__4 (union insn_base insn)
+rvdec_Ity__4 (rvstate_t state, union insn_base insn)
 {
   /* fence/fence.i insns. */
   if (!insn.i.rd && !insn.i.funct3 && !insn.i.rs1
@@ -66,11 +66,12 @@ rvdec_Ity__4 (union insn_base insn)
     return RV_INSN__FENCE;
   if (!insn.i.rd && (insn.i.funct3 & 0b001) && !insn.i.rs1 && !insn.i.imm__11_0)
     return RV_INSN__FENCE_I;
-  __builtin_unreachable ();
+  rvtrbk_diagn (state, "unrecognised synch. instruction");
+  return RV_INSN__INVALID;
 }
 
 static inline enum e_insn
-rvdec_Ity__5 (union insn_base insn)
+rvdec_Ity__5 (rvstate_t state, union insn_base insn)
 {
   /* ebreak/ecall csr* insns. */
   if (!insn.i.funct3 && !insn.i.rd && !insn.i.rs1)
@@ -79,7 +80,8 @@ rvdec_Ity__5 (union insn_base insn)
       return RV_INSN__ECALL;
     if (insn.i.imm__11_0 == 0b000000000001)
       return RV_INSN__EBREAK;
-    __builtin_unreachable ();
+    rvtrbk_diagn (state, "unrecognised environment insn. immediate specifier");
+    return RV_INSN__INVALID;
   }
   switch (insn.i.funct3)
   {
@@ -100,8 +102,9 @@ rvdec_Ity__5 (union insn_base insn)
 }
 
 static insn_t
-rvdec_Rty (union insn_base insn)
+rvdec_Rty (rvstate_t state, union insn_base insn)
 {
+  (void)state;
   insn_t canon_insn = {
     .rd = insn.r.rd,
     .rs1 = insn.r.rs1,
@@ -123,7 +126,7 @@ rvdec_Rty (union insn_base insn)
     _INSN_CASE(0b0000000111, RV_INSN__AND);
   }
 
-  rv_trbk_debug (
+  rvtrbk_debug (
     "\tR-type %s %s, %s, %s\n",
     repr_insn_map[canon_insn.insn_ty],
     repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
@@ -134,7 +137,7 @@ rvdec_Rty (union insn_base insn)
 }
 
 static insn_t
-rvdec_Ity (union insn_base insn)
+rvdec_Ity (rvstate_t state, union insn_base insn)
 {
   insn_t canon_insn = {
     .rd = insn.i.rd,
@@ -153,18 +156,19 @@ rvdec_Ity (union insn_base insn)
     _INSN_OP_CASE(0b1110011, 5);
   }
 
-  rv_trbk_debug (
-    "\tI-type %s %s, %s, %" PRIi16 "\n",
-    repr_insn_map[canon_insn.insn_ty],
-    repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
-    canon_insn.imm
-  );
+  if (canon_insn.insn_ty != RV_INSN__INVALID)
+    rvtrbk_debug (
+      "\tI-type %s %s, %s, %" PRIi16 "\n",
+      repr_insn_map[canon_insn.insn_ty],
+      repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
+      canon_insn.imm
+    );
 
   return canon_insn;
 }
 
 static insn_t
-rvdec_Sty (union insn_base insn)
+rvdec_Sty (rvstate_t state, union insn_base insn)
 {
   insn_t canon_insn = {
     .rs1 = insn.s.rs1,
@@ -178,21 +182,26 @@ rvdec_Sty (union insn_base insn)
     _INSN_CASE(0b000, RV_INSN__SB);
     _INSN_CASE(0b001, RV_INSN__SH);
     _INSN_CASE(0b010, RV_INSN__SW);
+    default:
+      rvtrbk_diagn (state, "unrecognised store insn. function bits"); 
+      canon_insn.insn_ty = RV_INSN__INVALID;
+      goto ret;
   }
 
-  rv_trbk_debug (
+  rvtrbk_debug (
     "\tS-type %s %s, %s, %" PRIi16 "\n",
     repr_insn_map[canon_insn.insn_ty],
     repr_reg_abi_map[canon_insn.rs1], repr_reg_abi_map[canon_insn.rs2],
     canon_insn.imm
   );
-
+ret:
   return canon_insn;
 }
 
 static insn_t
-rvdec_Uty (union insn_base insn)
+rvdec_Uty (rvstate_t state, union insn_base insn)
 {
+  (void)state;
   insn_t canon_insn = {
     .rd = insn.u.rd,
     .imm = insn.u.imm__31_12 << 12
@@ -204,7 +213,7 @@ rvdec_Uty (union insn_base insn)
     _INSN_CASE(0b0010111, RV_INSN__AUIPC);
   }
 
-  rv_trbk_debug (
+  rvtrbk_debug (
     "\tU-type %s %s, %" PRIi16 "\n",
     repr_insn_map[canon_insn.insn_ty],
     repr_reg_abi_map[canon_insn.rd], canon_insn.imm
@@ -214,8 +223,9 @@ rvdec_Uty (union insn_base insn)
 }
 
 static insn_t
-rvdec_Jty (union insn_base insn)
+rvdec_Jty (rvstate_t state, union insn_base insn)
 {
+  (void)state;
   insn_t canon_insn = {
     .insn_ty = RV_INSN__JAL,
     .rd = insn.j.rd,
@@ -228,7 +238,7 @@ rvdec_Jty (union insn_base insn)
     )
   };
 
-  rv_trbk_debug (
+  rvtrbk_debug (
     "\tJ-type %s (%d) %s, %" PRIi16 "\n",
     repr_insn_map[canon_insn.insn_ty], canon_insn.insn_ty,
     repr_reg_abi_map[canon_insn.rd], canon_insn.imm
@@ -238,8 +248,9 @@ rvdec_Jty (union insn_base insn)
 }
 
 static insn_t
-rvdec_Bty (union insn_base insn)
+rvdec_Bty (rvstate_t state, union insn_base insn)
 {
+  (void)state;
   insn_t canon_insn = {
     .rs1 = insn.b.rs1,
     .rs2 = insn.b.rs2,
@@ -261,9 +272,11 @@ rvdec_Bty (union insn_base insn)
     _INSN_CASE(0b101, RV_INSN__BGE);
     _INSN_CASE(0b110, RV_INSN__BLTU);
     _INSN_CASE(0b111, RV_INSN__BGEU);
+    default:
+      __builtin_unreachable ();
   }
 
-  rv_trbk_debug (
+  rvtrbk_debug (
     "\tB-type %s %s, %s, %" PRIi16 "\n",
     repr_insn_map[canon_insn.insn_ty], repr_reg_abi_map[canon_insn.rs1],
     repr_reg_abi_map[canon_insn.rs2], canon_insn.imm
@@ -276,38 +289,39 @@ rvdec_Bty (union insn_base insn)
 #undef _INSN_OP_CASE
 
 insn_t
-rvdec_insn (word_t bytes)
+rvdec_insn (rvstate_t state, word_t bytes)
 {
   auto as_base = (union insn_base)bytes;
   if (RISCV_INSN_OPCOND__R(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding R-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Rty (as_base);
+    rvtrbk_debug ("decoding R-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Rty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__I(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding I-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Ity (as_base);
+    rvtrbk_debug ("decoding I-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Ity (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__S(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding S-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Sty (as_base);
+    rvtrbk_debug ("decoding S-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Sty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__U(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding U-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Uty (as_base);
+    rvtrbk_debug ("decoding U-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Uty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__J(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding J-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Jty (as_base);
+    rvtrbk_debug ("decoding J-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Jty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__B(as_base.x.opcode))
   {
-    rv_trbk_debug ("decoding B-format insn. (%08" PRIx32 ")\n", bytes);
-    return rvdec_Bty (as_base);
+    rvtrbk_debug ("decoding B-format insn. (%08" PRIx32 ")\n", bytes);
+    return rvdec_Bty (state, as_base);
   }
-  __builtin_unreachable ();
+  rvtrbk_diagn (state, "unrecognised instruction format");
+  return (insn_t){};
 }

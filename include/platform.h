@@ -30,9 +30,11 @@ typedef u32 reg_t;
 #endif
 
 typedef u32 word_t;
+typedef i32 iword_t;
 
 enum e_insn
 {
+  RV_INSN__INVALID,
   RV_INSN__LUI,
   RV_INSN__AUIPC,
   RV_INSN__JAL,

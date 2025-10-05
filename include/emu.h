@@ -7,7 +7,7 @@ extern const char* const repr_insn_map[];
 extern const char* const repr_reg_abi_map[];
 #endif
 
-struct rv_state
+struct rvstate
 {
   /* `regs` determined at run-time, RVxxE/I have different # of regs. */
   reg_t* regs;
@@ -15,17 +15,18 @@ struct rv_state
   struct
   {
     u8* ptr;
-    word_t size;
+    size_t size;
   } mem;
   /* todo: CSRs */
 };
 
-typedef struct rv_state* rv_state_t;
+typedef struct rvstate* rvstate_t;
 
 __attribute__ (( malloc ))
-rv_state_t rvstate_alloc (void);
+rvstate_t rvstate_init (u8* const code, size_t len);
+void rvstate_free (rvstate_t state);
 
-void rvstate_free (rv_state_t state);
+bool rvemu_init (rvstate_t state);
+void rvemu_dispatch (rvstate_t state, insn_t insn);
 
-bool rvemu_init (size_t len;
-  rv_state_t state, u8* const code, size_t len);
+insn_t rvdec_insn (word_t bytes);

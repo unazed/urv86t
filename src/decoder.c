@@ -109,8 +109,6 @@ rvdec_Rty (union insn_base insn)
     .funct = (insn.r.funct7 << 3) | insn.r.funct3
   };
 
-  rv_trbk_debug ("\tR-type imm[11:0]: %" PRIi16 "\n", canon_insn.imm);
-  
   switch (canon_insn.funct)
   {
     _INSN_CASE(0b0000000000, RV_INSN__ADD);
@@ -124,6 +122,13 @@ rvdec_Rty (union insn_base insn)
     _INSN_CASE(0b0000000110, RV_INSN__OR);
     _INSN_CASE(0b0000000111, RV_INSN__AND);
   }
+
+  rv_trbk_debug (
+    "\tR-type %s %s, %s, %s\n",
+    repr_insn_map[canon_insn.insn_ty],
+    repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
+    repr_reg_abi_map[canon_insn.rs2]
+  );
 
   return canon_insn;
 }
@@ -176,8 +181,9 @@ rvdec_Sty (union insn_base insn)
   }
 
   rv_trbk_debug (
-    "\tS-type %s rs1=%" PRIu8 " rs2=%" PRIu8 " imm=%" PRIi16 "\n",
-    repr_insn_map[canon_insn.insn_ty], canon_insn.rs1, canon_insn.rs2,
+    "\tS-type %s %s, %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty],
+    repr_reg_abi_map[canon_insn.rs1], repr_reg_abi_map[canon_insn.rs2],
     canon_insn.imm
   );
 
@@ -198,6 +204,12 @@ rvdec_Uty (union insn_base insn)
     _INSN_CASE(0b0010111, RV_INSN__AUIPC);
   }
 
+  rv_trbk_debug (
+    "\tU-type %s %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty],
+    repr_reg_abi_map[canon_insn.rd], canon_insn.imm
+  );
+
   return canon_insn;
 }
 
@@ -205,6 +217,7 @@ static insn_t
 rvdec_Jty (union insn_base insn)
 {
   insn_t canon_insn = {
+    .insn_ty = RV_INSN__JAL,
     .rd = insn.j.rd,
     .imm = SIGNEXT(
       (insn.j.imm__20 << 20)
@@ -215,11 +228,11 @@ rvdec_Jty (union insn_base insn)
     )
   };
 
-  switch (insn.u.opcode)
-  {
-    _INSN_CASE(0b0110111, RV_INSN__LUI);
-    _INSN_CASE(0b0010111, RV_INSN__AUIPC);
-  }
+  rv_trbk_debug (
+    "\tJ-type %s (%d) %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty], canon_insn.insn_ty,
+    repr_reg_abi_map[canon_insn.rd], canon_insn.imm
+  );
 
   return canon_insn;
 }
@@ -249,6 +262,12 @@ rvdec_Bty (union insn_base insn)
     _INSN_CASE(0b110, RV_INSN__BLTU);
     _INSN_CASE(0b111, RV_INSN__BGEU);
   }
+
+  rv_trbk_debug (
+    "\tB-type %s %s, %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty], repr_reg_abi_map[canon_insn.rs1],
+    repr_reg_abi_map[canon_insn.rs2], canon_insn.imm
+  );
 
   return canon_insn;
 }

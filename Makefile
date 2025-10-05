@@ -1,7 +1,7 @@
 CC = gcc
 OBJCOPY = objcopy
 
-COMMON_CFLAGS = -Wall -Werror -Wextra -Os -Iinclude/ -ggdb 
+COMMON_CFLAGS = -Wall -Werror -Wextra -Os -Iinclude/ -ggdb -Wno-error=switch
 
 CFG_DEFS := $(foreach cfg,$(filter CFG_%,$(.VARIABLES)),-D$(cfg))
 

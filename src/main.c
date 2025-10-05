@@ -12,14 +12,9 @@ main (int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  auto emu_state = rvstate_alloc ();
-  if (emu_state == NULL)
-  {
-    fprintf (stderr, "failed to allocate emulation context\n");
-    return EXIT_FAILURE;
-  } 
-
   u8* emu_code = NULL;
+  rvstate_t emu_state = NULL;
+
   auto fd = fopen (argv[1], "r");
   if (fd == NULL)
   {
@@ -45,7 +40,14 @@ main (int argc, char** argv)
     goto clean;
   }
 
-  if (!rvemu_init (emu_state, emu_code, fd_size))
+  emu_state = rvstate_init (emu_code, fd_size);
+  if (emu_state == NULL)
+  {
+    fprintf (stderr, "failed to allocate emulation context\n");
+    return EXIT_FAILURE;
+  } 
+
+  if (!rvemu_init (emu_state))
     fprintf (stderr, "emulation finished with errors\n");
 
 clean:

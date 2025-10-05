@@ -4,6 +4,7 @@
 #ifdef DEBUG
 # define _INSN_MAP_ENTRY(insn) [RV_INSN__##insn] = #insn
 const char* const repr_insn_map[] = {
+  _INSN_MAP_ENTRY(INVALID),
   _INSN_MAP_ENTRY(LUI),
   _INSN_MAP_ENTRY(AUIPC),
   _INSN_MAP_ENTRY(JAL),

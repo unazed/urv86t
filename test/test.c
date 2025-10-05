@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int
 main (void)
 {
@@ -5,5 +7,6 @@ main (void)
 	while (a > 1)
 		--a;
 	const char* s = "hello, world!\n";
+	printf ("%s\n", s);
 	return a;
 }

@@ -18,7 +18,7 @@ struct emu_traceback_ctx
     const char* const repr_insn;
     
   } diagnostics;
-  const rv_state_t state;
+  const rvstate_t state;
 };
 
 extern struct emu_traceback_ctx g_trbk_ctx;

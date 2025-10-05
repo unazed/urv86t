@@ -11,6 +11,8 @@
 # define rvtrbk_debug(fmt, ...)
 #endif
 
+#define rvtrbk_error(fmt, ...) fprintf (stderr, "e: "fmt,##__VA_ARGS__)
+
 __attribute__ (( noreturn ))
 void rvtrbk_fatal (const char* const msg);
 

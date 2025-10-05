@@ -323,5 +323,5 @@ rvdec_insn (rvstate_t state, word_t bytes)
     return rvdec_Bty (state, as_base);
   }
   rvtrbk_diagn (state, "unrecognised instruction format");
-  return (insn_t){};
+  return (insn_t){ .insn_ty = RV_INSN__INVALID };
 }

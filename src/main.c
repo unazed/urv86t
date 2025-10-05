@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "emu.h"
+#include "traceback.h"
 
 int
 main (int argc, char** argv)
@@ -48,6 +49,7 @@ main (int argc, char** argv)
   } 
 
   while (rvemu_step (emu_state));
+  rvtrbk_print_dump (emu_state);
 
 clean:
   rvstate_free (emu_state);

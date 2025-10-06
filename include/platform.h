@@ -29,6 +29,8 @@ typedef u32 reg_t;
 # error "Compilation selector for ISA unset"
 #endif
 
+#define RV_INSNLEN (sizeof (word_t))
+
 typedef u32 word_t;
 typedef i32 iword_t;
 typedef u16 hword_t;

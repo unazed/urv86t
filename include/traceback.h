@@ -20,3 +20,5 @@ void rvtrbk_diagn (rvstate_t state, const char* const msg);
 void rvtrbk_print_dump (rvstate_t state);
 
 void rvtrbk_bndcheck_mem (rvstate_t state, word_t addr);
+void rvtrbk_bndcheck_jmp (rvstate_t state, iword_t offs);
+void rvtrbk_bndcheck_range (rvstate_t state, word_t start, word_t len);

@@ -1,0 +1,26 @@
+#include "syscall.h"
+#include "traceback.h"
+
+RVSYSC_DEFN(rvsysc_read, iword_t fd, void* buff, word_t count)
+{
+  (void)state;
+  rvtrbk_debug ("read(fd=%" PRIi32 ", buff=%p, count=%" PRIu32 ")\n",
+    fd, buff, count);
+  return 0;
+}
+
+RVSYSC_DEFN(rvsysc_write, iword_t fd, void* buff, word_t count)
+{
+  (void)state;
+  rvtrbk_debug ("write(fd=%" PRIi32 ", buff=%p, count=%" PRIu32 ")\n",
+    fd, buff, count);
+  return 0;
+}
+
+RVSYSC_DEFN(rvsysc_exit, iword_t code)
+{
+  (void)state;
+  rvtrbk_debug ("exit(code=%" PRIi32 ")", code);
+  state->suspended = true;
+  return 0;
+}

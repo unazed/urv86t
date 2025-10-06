@@ -94,3 +94,35 @@ rvtrbk_bndcheck_mem (rvstate_t state, word_t addr)
   }
 #endif
 }
+
+void
+rvtrbk_bndcheck_range (rvstate_t state, word_t start, word_t len)
+{
+  (void)state; (void)start; (void)len;
+#ifdef RV_SANITIZE
+  if ((start >= state->mem.size) || (start + len >= state->mem.size))
+  {
+    rvtrbk_print_dump (state);
+    rvtrbk_debug (
+      "invalid ranged memory access: [0x%" PRIx32 ", 0x%" PRIx32 "]\n",
+      start, start + len);
+    rvtrbk_fatal ("invalid memory range access");
+  }
+#endif
+}
+
+void
+rvtrbk_bndcheck_jmp (rvstate_t state, iword_t offs)
+{
+  (void)state; (void)offs;
+#ifdef RV_SANITIZE
+  if (((iword_t)state->pc + offs < 0) || (state->pc + offs >= state->mem.size))
+  {
+    rvtrbk_print_dump (state);
+    rvtrbk_debug (
+      "tried to branch to invalid memory: pc=0x%" PRIx32 "%c0x%" PRIx32 "\n",
+      state->pc, (offs < 0)? '-': '+', offs);
+    rvtrbk_fatal ("invalid branch address");
+  }
+#endif
+}

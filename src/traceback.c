@@ -48,12 +48,12 @@ rvtrbk_print_dump (rvstate_t state)
   
   word_t prev_insn
     = (pc >= 4)
-    ? *(word_t *)(state->mem.ptr + pc - 4)
+    ? *(word_t *)rvmem_at_pc (state, -4)
     : 0;
-  auto insn = *(word_t *)(state->mem.ptr + pc);
+  auto insn = *(word_t *)rvmem_at_pc (state, 0);
   word_t next_insn
     = (pc <= state->mem.size - 8)
-    ? *(word_t *)(state->mem.ptr + pc + 4)
+    ? *(word_t *)rvmem_at_pc (state, 4)
     : 0;
 
   if (prev_insn)
@@ -79,4 +79,18 @@ rvtrbk_print_dump (rvstate_t state)
     printf (">> (n/a) >/");
 
   printf ("\n---/\n");
+}
+
+void
+rvtrbk_bndcheck_mem (rvstate_t state, word_t addr)
+{
+  (void)state; (void)addr;
+#ifdef RV_SANITIZE
+  if (addr >= state->mem.size)
+  {
+    rvtrbk_print_dump (state);
+    rvtrbk_debug ("tried to access invalid memory: 0x%" PRIx32 "\n", addr);
+    rvtrbk_fatal ("invalid memory access");
+  }
+#endif
 }

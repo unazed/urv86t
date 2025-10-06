@@ -31,6 +31,8 @@ typedef u32 reg_t;
 
 typedef u32 word_t;
 typedef i32 iword_t;
+typedef u16 hword_t;
+typedef i16 hiword_t;
 
 enum e_insn
 {

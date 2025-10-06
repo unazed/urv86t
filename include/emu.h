@@ -27,6 +27,11 @@ __attribute__ (( malloc ))
 rvstate_t rvstate_init (u8* const code, size_t len);
 void rvstate_free (rvstate_t state);
 
+void* rvmem_at (rvstate_t state, size_t pos);
+void* rvmem_at_pc (rvstate_t state, ssize_t offs);
+word_t rvmem_reg (rvstate_t state, u8 sel);
+word_t* rvmem_regp (rvstate_t state, u8 sel);
+
 bool rvemu_step (rvstate_t state);
 void rvemu_dispatch (rvstate_t state, insn_t insn);
 

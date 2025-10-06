@@ -16,7 +16,7 @@ main (int argc, char** argv)
   u8* emu_code = NULL;
   rvstate_t emu_state = NULL;
 
-  auto fd = fopen (argv[1], "r");
+  auto fd = fopen (argv[1], "rb");
   if (fd == NULL)
   {
     fprintf (stderr, "failed to open file: '%s'\n", argv[1]);

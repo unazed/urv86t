@@ -18,3 +18,5 @@ void rvtrbk_fatal (const char* const msg);
 
 void rvtrbk_diagn (rvstate_t state, const char* const msg);
 void rvtrbk_print_dump (rvstate_t state);
+
+void rvtrbk_bndcheck_mem (rvstate_t state, word_t addr);

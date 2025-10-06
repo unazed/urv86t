@@ -5,7 +5,7 @@ COMMON_CFLAGS = -Wall -Werror -Wextra -Os -Iinclude/ -ggdb -Wno-error=switch
 
 CFG_DEFS := $(foreach cfg,$(filter CFG_%,$(.VARIABLES)),-D$(cfg))
 
-CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS) -DENABLE_RV32I -DDEBUG
+CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS) -DENABLE_RV32I -DDEBUG -DRV_SANITIZE
 
 OBJ = $(SOURCES:src/%.c=build/%.o)
 SOURCES = $(wildcard src/*.c)

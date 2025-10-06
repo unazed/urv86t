@@ -62,9 +62,10 @@ rvdec_Ity__4 (rvstate_t state, union insn_base insn)
 {
   /* fence/fence.i insns. */
   if (!insn.i.rd && !insn.i.funct3 && !insn.i.rs1
-      && (insn.i.imm__11_0 & 0b000011111111))
+      && (insn.i.imm__11_0 == 0b000011111111))
     return RV_INSN__FENCE;
-  if (!insn.i.rd && (insn.i.funct3 & 0b001) && !insn.i.rs1 && !insn.i.imm__11_0)
+  if (!insn.i.rd && (insn.i.funct3 == 0b001) && !insn.i.rs1
+      && !insn.i.imm__11_0)
     return RV_INSN__FENCE_I;
   rvtrbk_diagn (state, "unrecognised synch. instruction");
   return RV_INSN__INVALID;

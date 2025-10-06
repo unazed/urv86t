@@ -37,6 +37,30 @@ rvstate_fetch (rvstate_t state)
   return insn;
 }
 
+void*
+rvmem_at (rvstate_t state, size_t pos)
+{
+  return state->mem.ptr + pos;
+}
+
+void*
+rvmem_at_pc (rvstate_t state, ssize_t offs)
+{
+  return rvmem_at (state, state->pc + offs);
+}
+
+word_t*
+rvmem_regp (rvstate_t state, u8 sel)
+{
+  return &state->regs[sel];
+}
+
+word_t
+rvmem_reg (rvstate_t state, u8 sel)
+{
+  return *rvmem_regp (state, sel);
+}
+
 bool
 rvemu_step (rvstate_t state)
 {

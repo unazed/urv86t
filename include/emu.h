@@ -9,15 +9,17 @@ extern const char* const repr_reg_abi_map[];
 
 struct rvstate
 {
-  /* `regs` determined at run-time, RVxxE/I have different # of regs. */
-  bool suspended;
-  reg_t* regs;
-  reg_t pc;
   struct
   {
     u8* ptr;
     size_t size;
   } mem;
+#ifdef EXT_RV32FD
+  freg_t fregs[RISCV_FREGCOUNT];
+#endif
+  reg_t regs[RISCV_REGCOUNT];
+  reg_t pc;
+  bool suspended;
 };
 
 typedef struct rvstate* rvstate_t;
@@ -28,8 +30,12 @@ void rvstate_free (rvstate_t state);
 
 void* rvmem_at (rvstate_t state, size_t pos);
 void* rvmem_at_pc (rvstate_t state, ssize_t offs);
-word_t rvmem_reg (rvstate_t state, u8 sel);
-word_t* rvmem_regp (rvstate_t state, u8 sel);
+reg_t rvmem_reg (rvstate_t state, u8 sel);
+reg_t* rvmem_regp (rvstate_t state, u8 sel);
+#ifdef EXT_RV32FD
+freg_t rvmem_freg (rvstate_t state, u8 sel);
+freg_t* rvmem_fregp (rvstate_t state, u8 sel);
+#endif
 
 bool rvemu_step (rvstate_t state);
 void rvemu_dispatch (rvstate_t state, insn_t insn);

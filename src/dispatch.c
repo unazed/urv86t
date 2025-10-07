@@ -247,10 +247,70 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
         = rvmem_reg (state, insn.rs1) % rvmem_reg (state, insn.rs2);
       break;
 #endif
-
+#ifdef EXT_RV32FD
+    case RV_INSN__FLx:
+      switch (insn.funct)
+      {
+        /* what the FUCK is NaN-boxing ??? */
+        case 0b010:
+          *rvmem_fregp (state, insn.rd)
+            = *(f32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
+          break;
+        case 0b011:
+          *rvmem_fregp (state, insn.rd)
+            = *(f64 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FSx:
+      switch (insn.funct)
+      {
+        case 0b010:
+          *(f32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm) \
+            = (f32)rvmem_freg (state, insn.rs2);
+          break;
+        case 0b011:
+          *(f64 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm) \
+            = (f64)rvmem_freg (state, insn.rs2);
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FMADDx:
+    case RV_INSN__FMSUBx:
+    case RV_INSN__FNMSUBx:
+    case RV_INSN__FNMADDx:
+    case RV_INSN__FADDx:
+    case RV_INSN__FSUBx:
+    case RV_INSN__FMULx:
+    case RV_INSN__FDIVx:
+    case RV_INSN__FSQRTx:
+    case RV_INSN__FSGNJx:
+    case RV_INSN__FSGNJNx:
+    case RV_INSN__FSGNJXx:
+    case RV_INSN__FMINx:
+    case RV_INSN__FMAXx:
+    case RV_INSN__FCVT_W_x:
+    case RV_INSN__FCVT_WU_x:
+    case RV_INSN__FCVT_x_W:
+    case RV_INSN__FCVT_x_WU:
+    case RV_INSN__FMV_x_W:
+    case RV_INSN__FEQx:
+    case RV_INSN__FLTx:
+    case RV_INSN__FLEx:
+    case RV_INSN__FCLASSx:
+    case RV_INSN__FMV_W_x:
+      break;
+#endif
     case RV_INSN__INVALID:
       __builtin_unreachable ();
   }
 }
 
-#undef _DISPATCH_BINOP_RR
+#undef DISPATCH_BINOP
+#undef DISPATCH_BINOP_I
+#undef DISPATCH_BINOP_U
+#undef DISPATCH_BINOP_IU

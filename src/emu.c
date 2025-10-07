@@ -10,14 +10,8 @@ rvstate_init (u8* const code, size_t len)
   rvstate_t state = calloc (1, sizeof (struct rvstate));
   if (state == NULL)
     rvtrbk_fatal ("failed to allocate emulation context\n");
-
-  state->regs = calloc (RISCV_XLEN_BYTES, RISCV_REGCOUNT);
-  if (state->regs == NULL)
-    rvtrbk_fatal ("failed to allocate emulation registers\n");
-
   state->mem.ptr = code;
   state->mem.size = len;
-
   return state;
 }
 
@@ -25,7 +19,6 @@ void
 rvstate_free (rvstate_t state)
 {
   rvtrbk_debug ("finalising emulation state\n");
-  free (state->regs);
   free (state);
 }
 
@@ -49,17 +42,31 @@ rvmem_at_pc (rvstate_t state, ssize_t offs)
   return rvmem_at (state, state->pc + offs);
 }
 
-word_t*
+reg_t*
 rvmem_regp (rvstate_t state, u8 sel)
 {
   return &state->regs[sel];
 }
 
-word_t
+reg_t
 rvmem_reg (rvstate_t state, u8 sel)
 {
   return *rvmem_regp (state, sel);
 }
+
+#ifdef EXT_RV32FD
+freg_t*
+rvmem_fregp (rvstate_t state, u8 sel)
+{
+  return &state->fregs[sel];
+}
+
+freg_t
+rvmem_freg (rvstate_t state, u8 sel)
+{
+  return *rvmem_fregp (state, sel);
+}
+#endif
 
 bool
 rvemu_step (rvstate_t state)

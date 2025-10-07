@@ -2,21 +2,36 @@
 
 #include "types.h"
 
-/* todo: conditional IALIGN based on supported extensions */
-#define RISCV_IALIGN_BYTES (4)
+#define RISCV_IALIGN_BYTES (sizeof (word_t))
+#define RV_INSNLEN         (sizeof (word_t))
 
-#define RISCV_INSN_OPCOND__R(n) ((n) == 0b0110011ul)
+#define RISCV_INSN_I__JALR  (0b1100111)
+#define RISCV_INSN_I__LOAD  (0b0000011)
+#define RISCV_INSN_I__ARITH (0b0010011)
+#define RISCV_INSN_I__SYNCH (0b0001111)
+#define RISCV_INSN_I__ENV   (0b1110011)
+#define RISCV_INSN_I__FLOAT (0b0000111)
 #define RISCV_INSN_OPCOND__I(n) \
   ( \
-    ((n) == 0b1100111ul) || ((n) == 0b0000011ul) \
-    || ((n) == 0b0010011ul) || ((n) == 0b0001111ul) \
-    || ((n) == 0b1110011ul) \
+       ((n) == RISCV_INSN_I__JALR)  || ((n) == RISCV_INSN_I__LOAD) \
+    || ((n) == RISCV_INSN_I__ARITH) || ((n) == RISCV_INSN_I__SYNCH) \
+    || ((n) == RISCV_INSN_I__ENV)   || ((n) == RISCV_INSN_I__FLOAT) \
   )
-#define RISCV_INSN_OPCOND__S(n) ((n) == 0b0100011ul)
+
+#define RISCV_INSN_OPCOND__R(n) ((n) == 0b0110011)
+
+#define RISCV_INSN_S__REG   (0b0100011)
+#define RISCV_INSN_S__FLOAT (0b0100111)
+#define RISCV_INSN_OPCOND__S(n) \
+  (((n) == RISCV_INSN_S__REG) || ((n) == RISCV_INSN_S__FLOAT))
+
+#define RISCV_INSN_U__LUI   (0b0110111)
+#define RISCV_INSN_U__AUIPC (0b0010111)
 #define RISCV_INSN_OPCOND__U(n) \
-  (((n) == 0b0010111ul) || ((n) == 0b0110111ul))
-#define RISCV_INSN_OPCOND__J(n) ((n) == 0b1101111ul)
-#define RISCV_INSN_OPCOND__B(n) ((n) == 0b1100011ul)
+  (((n) == RISCV_INSN_U__AUIPC) || ((n) == RISCV_INSN_U__LUI))
+
+#define RISCV_INSN_OPCOND__J(n) ((n) == 0b1101111)
+#define RISCV_INSN_OPCOND__B(n) ((n) == 0b1100011)
 
 #define SIGNEXT(word, sign_bit) \
   (((word) & (sign_bit))? ((word) | ~((sign_bit) - 1)): (word))
@@ -29,7 +44,11 @@ typedef u32 reg_t;
 # error "Compilation selector for ISA unset"
 #endif
 
-#define RV_INSNLEN (sizeof (word_t))
+#ifdef EXT_RV32FD
+# define RISCV_FREGCOUNT (32)
+# define RISCV_FLEN_BYTES (8)
+typedef f64 freg_t;
+#endif
 
 typedef u32 word_t;
 typedef i32 iword_t;
@@ -99,6 +118,36 @@ enum e_insn
   RV_INSN__DIVU,
   RV_INSN__REM,
   RV_INSN__REMU,
+#endif
+
+#ifdef EXT_RV32FD
+  /* RV32F/D insns. */
+  RV_INSN__FLx,
+  RV_INSN__FSx,
+  RV_INSN__FMADDx,
+  RV_INSN__FMSUBx,
+  RV_INSN__FNMSUBx,
+  RV_INSN__FNMADDx,
+  RV_INSN__FADDx,
+  RV_INSN__FSUBx,
+  RV_INSN__FMULx,
+  RV_INSN__FDIVx,
+  RV_INSN__FSQRTx,
+  RV_INSN__FSGNJx,
+  RV_INSN__FSGNJNx,
+  RV_INSN__FSGNJXx,
+  RV_INSN__FMINx,
+  RV_INSN__FMAXx,
+  RV_INSN__FCVT_W_x,
+  RV_INSN__FCVT_WU_x,
+  RV_INSN__FCVT_x_W,
+  RV_INSN__FCVT_x_WU,
+  RV_INSN__FMV_x_W,
+  RV_INSN__FEQx,
+  RV_INSN__FLTx,
+  RV_INSN__FLEx,
+  RV_INSN__FCLASSx,
+  RV_INSN__FMV_W_x,
 #endif
 };
 

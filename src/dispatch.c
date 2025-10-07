@@ -12,8 +12,20 @@
   case (enum_): state->regs[insn.rd]\
     = rvmem_reg (state, x) op rvmem_reg (state, y); break;
 #define DISPATCH_BINOP_IU(enum_, op, x) \
-  case (enum_): state->regs[insn.rd]\
+  case (enum_): state->regs[insn.rd] \
     = rvmem_reg (state, x) op insn.imm; break;
+
+static inline freg_t
+rvfloat_nanbox_saturate (u32 val)
+{
+  return (u64)val | 0xffffffff00000000ull;
+}
+
+static inline freg_t
+rvfloat_nanbox_unpack (u64 val)
+{
+  return (u32)(val & 0xffffffff);
+}
 
 void
 rvemu_dispatch_syscall (rvstate_t state)
@@ -251,14 +263,13 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FLx:
       switch (insn.funct)
       {
-        /* what the FUCK is NaN-boxing ??? */
-        case 0b010:
-          *rvmem_fregp (state, insn.rd)
-            = *(f32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
+        case 0b010:  /* single-precision */
+          *rvmem_fregp (state, insn.rd) = rvfloat_nanbox_saturate (
+            *rvmem_at_ty (u32, state, rvmem_reg (state, insn.rs1) + insn.imm));
           break;
-        case 0b011:
+        case 0b011:  /* double-precision */
           *rvmem_fregp (state, insn.rd)
-            = *(f64 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
+            = *rvmem_at_ty (u64, state, rvmem_reg (state, insn.rs1) + insn.imm);
           break;
         default:
           __builtin_unreachable ();
@@ -268,12 +279,12 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       switch (insn.funct)
       {
         case 0b010:
-          *(f32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm) \
-            = (f32)rvmem_freg (state, insn.rs2);
+          *rvmem_at_ty (u32, state, rvmem_reg (state, insn.rs1) + insn.imm) \
+            = rvfloat_nanbox_unpack (rvmem_freg (state, insn.rs2));
           break;
         case 0b011:
-          *(f64 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm) \
-            = (f64)rvmem_freg (state, insn.rs2);
+          *rvmem_at_ty (u64, state, rvmem_reg (state, insn.rs1) + insn.imm) \
+            = rvmem_freg (state, insn.rs2);
           break;
         default:
           __builtin_unreachable ();

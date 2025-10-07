@@ -47,7 +47,7 @@ typedef u32 reg_t;
 #ifdef EXT_RV32FD
 # define RISCV_FREGCOUNT (32)
 # define RISCV_FLEN_BYTES (8)
-typedef f64 freg_t;
+typedef u64 freg_t;
 #endif
 
 typedef u32 word_t;

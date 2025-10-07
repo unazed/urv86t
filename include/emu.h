@@ -2,6 +2,8 @@
 
 #include "platform.h"
 
+#define rvmem_at_ty(ty, state, pos) (ty *)rvmem_at ((state), (pos))
+
 #ifdef DEBUG
 extern const char* const repr_insn_map[];
 extern const char* const repr_reg_abi_map[];

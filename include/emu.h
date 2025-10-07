@@ -18,7 +18,6 @@ struct rvstate
     u8* ptr;
     size_t size;
   } mem;
-  /* todo: CSRs */
 };
 
 typedef struct rvstate* rvstate_t;

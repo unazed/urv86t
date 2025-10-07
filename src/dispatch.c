@@ -187,6 +187,12 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       rvemu_dispatch_debug (state);
       break;
 
+    /* Synch. insns. */
+    case RV_INSN__FENCE:
+    case RV_INSN__FENCE_I:
+      rvtrbk_diagn (state, "unimplemented synch. instructions");
+      break;
+
     /* CSR insns. */
     case RV_INSN__CSRRW:
     case RV_INSN__CSRRS:
@@ -194,14 +200,53 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__CSRRWI:
     case RV_INSN__CSRRSI:
     case RV_INSN__CSRRCI:
-      rvtrbk_diagn (state, "unimplemented CSR instructions");
+      rvtrbk_diagn (state, "unimplemented CSR. instructions");
       break;
 
-    /* Synch. insns. */
-    case RV_INSN__FENCE:
-    case RV_INSN__FENCE_I:
-      rvtrbk_diagn (state, "unimplemented synch. instructions");
+#ifdef EXT_RV32M
+    /* RV32M insns. */
+    case RV_INSN__MUL:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) * rvmem_reg (state, insn.rs2);
+      break; 
+    case RV_INSN__MULH:
+    {
+      i64 prod
+        = (i64)rvmem_reg (state, insn.rs1) * (i64)rvmem_reg (state, insn.rs2);
+      *rvmem_regp (state, insn.rd) = prod >> (RISCV_XLEN_BYTES * 8);
       break;
+    }
+    case RV_INSN__MULHSU:
+    {
+      i64 prod
+        = (i64)rvmem_reg (state, insn.rs1) * (u64)rvmem_reg (state, insn.rs2);
+      *rvmem_regp (state, insn.rd) = prod >> (RISCV_XLEN_BYTES * 8);
+      break;
+    }
+    case RV_INSN__MULHU:
+    {
+      i64 prod
+        = (u64)rvmem_reg (state, insn.rs1) * (u64)rvmem_reg (state, insn.rs2);
+      *rvmem_regp (state, insn.rd) = prod >> (RISCV_XLEN_BYTES * 8);
+      break;
+    }
+    case RV_INSN__DIV:
+      *rvmem_regp (state, insn.rd) = (iword_t)rvmem_reg (state, insn.rs1)
+        / (iword_t)rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__DIVU:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) / rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__REM:
+      *rvmem_regp (state, insn.rd) = (iword_t)rvmem_reg (state, insn.rs1)
+        % (iword_t)rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__REMU:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) % rvmem_reg (state, insn.rs2);
+      break;
+#endif
 
     case RV_INSN__INVALID:
       __builtin_unreachable ();

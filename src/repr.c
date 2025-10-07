@@ -51,7 +51,17 @@ const char* const repr_insn_map[] = {
   _INSN_MAP_ENTRY(CSRRC),
   _INSN_MAP_ENTRY(CSRRWI),
   _INSN_MAP_ENTRY(CSRRSI),
-  _INSN_MAP_ENTRY(CSRRCI)
+  _INSN_MAP_ENTRY(CSRRCI),
+#ifdef EXT_RV32M
+  _INSN_MAP_ENTRY(MUL),
+  _INSN_MAP_ENTRY(MULH),
+  _INSN_MAP_ENTRY(MULHSU),
+  _INSN_MAP_ENTRY(MULHU),
+  _INSN_MAP_ENTRY(DIV),
+  _INSN_MAP_ENTRY(DIVU),
+  _INSN_MAP_ENTRY(REM),
+  _INSN_MAP_ENTRY(REMU),
+#endif
 };
 
 const char* const repr_reg_abi_map[] = {

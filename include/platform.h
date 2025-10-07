@@ -39,6 +39,8 @@ typedef i16 hiword_t;
 enum e_insn
 {
   RV_INSN__INVALID,
+
+  /* RV32I insns. */
   RV_INSN__LUI,
   RV_INSN__AUIPC,
   RV_INSN__JAL,
@@ -85,7 +87,19 @@ enum e_insn
   RV_INSN__CSRRC,
   RV_INSN__CSRRWI,
   RV_INSN__CSRRSI,
-  RV_INSN__CSRRCI
+  RV_INSN__CSRRCI,
+
+#ifdef EXT_RV32M
+  /* RV32M insns. */
+  RV_INSN__MUL,
+  RV_INSN__MULH,
+  RV_INSN__MULHSU,
+  RV_INSN__MULHU,
+  RV_INSN__DIV,
+  RV_INSN__DIVU,
+  RV_INSN__REM,
+  RV_INSN__REMU,
+#endif
 };
 
 typedef struct

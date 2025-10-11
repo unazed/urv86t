@@ -2,19 +2,6 @@
 #include "traceback.h"
 #include "syscall.h"
 
-#define DISPATCH_BINOP(enum_, op, x, y) \
-  case (enum_): state->regs[insn.rd]\
-    = (iword_t)rvmem_reg (state, x) op (iword_t)rvmem_reg (state, y); break;
-#define DISPATCH_BINOP_I(enum_, op, x) \
-  case (enum_): state->regs[insn.rd]\
-    = (iword_t)rvmem_reg (state, x) op (iword_t)insn.imm; break;
-#define DISPATCH_BINOP_U(enum_, op, x, y) \
-  case (enum_): state->regs[insn.rd]\
-    = rvmem_reg (state, x) op rvmem_reg (state, y); break;
-#define DISPATCH_BINOP_IU(enum_, op, x) \
-  case (enum_): state->regs[insn.rd] \
-    = rvmem_reg (state, x) op insn.imm; break;
-
 static inline freg_t
 rvfloat_nanbox_saturate (u32 val)
 {
@@ -67,66 +54,114 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
   switch (insn.insn_ty)
   {
     /* Arithmetic/bitwise insns., reg-reg/reg-imm */
-    DISPATCH_BINOP(RV_INSN__ADD, +, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_I(RV_INSN__ADDI, +, insn.rs1);
-    DISPATCH_BINOP(RV_INSN__SUB, -, insn.rs1, insn.rs2);
-    DISPATCH_BINOP(RV_INSN__SLL, <<, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_I(RV_INSN__SLLI, <<, insn.rs1);
-    DISPATCH_BINOP(RV_INSN__SLT, <, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_I(RV_INSN__SLTI, <, insn.rs1);
-    DISPATCH_BINOP_U(RV_INSN__SLTU, <, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_IU(RV_INSN__SLTIU, <, insn.rs1);
-    DISPATCH_BINOP_U(RV_INSN__XOR, ^, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_IU(RV_INSN__XORI, |, insn.rs1);
-    DISPATCH_BINOP_U(RV_INSN__SRL, >>, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_IU(RV_INSN__SRLI, >>, insn.rs1);
-    DISPATCH_BINOP(RV_INSN__SRA, >>, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_I(RV_INSN__SRAI, >>, insn.rs1);
-    DISPATCH_BINOP_U(RV_INSN__OR, |, insn.rs1, insn.rs2);
-    DISPATCH_BINOP_IU(RV_INSN__ORI, |, insn.rs1);
-    DISPATCH_BINOP_U(RV_INSN__AND, &, insn.rs1, insn.rs2);    
-    DISPATCH_BINOP_IU(RV_INSN__ANDI, &, insn.rs1);
+    case RV_INSN__ADD:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) + rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__SUB:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) - rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__SLL:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) << (rvmem_reg (state, insn.rs2) & 0x1f);
+      break;
+    case RV_INSN__SLT:
+      *rvmem_regp (state, insn.rd)
+        = ((i32)rvmem_reg (state, insn.rs1)
+          < (i32)rvmem_reg (state, insn.rs2)) ? 1 : 0;
+      break;
+    case RV_INSN__SLTU:
+      *rvmem_regp (state, insn.rd)
+        = (rvmem_reg (state, insn.rs1) < rvmem_reg (state, insn.rs2)) ? 1 : 0;
+      break;
+    case RV_INSN__XOR:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) ^ rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__SRL:
+      *rvmem_regp(state, insn.rd)
+        = rvmem_reg (state, insn.rs1) >> (rvmem_reg (state, insn.rs2) & 0x1F);
+      break;
+    case RV_INSN__SRA:
+      *rvmem_regp (state, insn.rd)
+        = (u32)((i32)rvmem_reg(state, insn.rs1)
+          >> (rvmem_reg(state, insn.rs2) & 0x1F));
+      break;
+    case RV_INSN__OR:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) | rvmem_reg (state, insn.rs2);
+      break;
+    case RV_INSN__AND:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) & rvmem_reg (state, insn.rs2);
+      break;
+
+    case RV_INSN__ADDI:
+      *rvmem_regp (state, insn.rd) = rvmem_reg (state, insn.rs1) + insn.imm;
+      break;
+    case RV_INSN__SLLI:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) << (rvmem_reg (state, insn.rs2) & 0x1f);
+      break;
+    case RV_INSN__SLTI:
+      *rvmem_regp (state, insn.rd) = 
+        ((i32)rvmem_reg (state, insn.rs1) < (i32)insn.imm) ? 1 : 0;
+      break;
+    case RV_INSN__SLTIU:
+      *rvmem_regp (state, insn.rd)
+        = (rvmem_reg (state, insn.rs1) < insn.imm) ? 1 : 0;
+      break;
+    case RV_INSN__XORI:
+      *rvmem_regp (state, insn.rd) = rvmem_reg (state, insn.rs1) ^ insn.imm;
+      break;
+    case RV_INSN__SRLI:
+      *rvmem_regp (state, insn.rd)
+        = rvmem_reg (state, insn.rs1) >> (insn.imm & 0x1F);
+      break;
+    case RV_INSN__SRAI:
+      *rvmem_regp(state, insn.rd)
+        = (u32)((i32)rvmem_reg(state, insn.rs1) >> (insn.imm & 0x1F));
+      break;
+    case RV_INSN__ORI:
+      *rvmem_regp (state, insn.rd) = rvmem_reg (state, insn.rs1) | insn.imm;
+      break;
+    case RV_INSN__ANDI:
+      *rvmem_regp (state, insn.rd) = rvmem_reg (state, insn.rs1) & insn.imm;
+      break;
 
     /* Load/store insns. */
     case RV_INSN__LB:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
-      *rvmem_regp (state, insn.rd) = (iword_t)(*(i8 *)rvmem_at (
-        state, rvmem_reg (state, insn.rs1) + insn.imm));
+      *rvmem_regp (state, insn.rd)
+        = *(i8 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__LH:
-      rvtrbk_bndcheck_mem (state, insn.rs1 + insn.imm);
-      *rvmem_regp (state, insn.rd) = (iword_t)(*(i16 *)rvmem_at (
-        state, rvmem_reg (state, insn.rs1) + insn.imm));
+      *rvmem_regp (state, insn.rd)
+        = *(i16 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__LW:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *rvmem_regp (state, insn.rd)
-        = *(iword_t *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
+        = *(i32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__LBU:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *rvmem_regp (state, insn.rd)
-        = *(u8 *)rvmem_at (state, (u8)rvmem_reg (state, insn.rs1) + insn.imm);
+        = *(u8 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__LHU:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
-      *rvmem_regp (state, insn.rd) = *(hword_t *)rvmem_at (
-        state, (hword_t)rvmem_reg (state, insn.rs1) + insn.imm);
+      *rvmem_regp (state, insn.rd)
+        = *(u16 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__SB:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *(i8 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
         = (i8)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SH:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
-      *(hiword_t *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
-        = (hiword_t)rvmem_reg (state, insn.rs2);
+      *(i16 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
+        = (i16)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SW:
-      rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
-      *(iword_t *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
-        = (iword_t)rvmem_reg (state, insn.rs2);
+      *(i32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
+        = (i32)rvmem_reg (state, insn.rs2);
       break;
 
     /* Branch insns. */
@@ -134,14 +169,14 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       if (rvmem_reg (state, insn.rs1) == rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (i32)insn.imm - RV_INSNLEN;
       }
       break;
     case RV_INSN__BNE:
       if (rvmem_reg (state, insn.rs1) != rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (iword_t)insn.imm - RV_INSNLEN;
       }
       break;
     case RV_INSN__BLT:
@@ -149,7 +184,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
           < (iword_t)rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (iword_t)insn.imm - RV_INSNLEN;
       }
       break;
     case RV_INSN__BGE:
@@ -157,34 +192,36 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
           >= (iword_t)rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (iword_t)insn.imm - RV_INSNLEN;
       }
       break;
     case RV_INSN__BLTU:
       if (rvmem_reg (state, insn.rs1) < rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (iword_t)insn.imm - RV_INSNLEN;
       }
       break;
     case RV_INSN__BGEU:
       if (rvmem_reg (state, insn.rs1) >= rvmem_reg (state, insn.rs2))
       {
         rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm;
+        state->pc += (iword_t)insn.imm - RV_INSNLEN;
       }
       break;
 
     /* Linked branch insns. */
     case RV_INSN__JAL:
       *rvmem_regp (state, insn.rd) = state->pc + RV_INSNLEN;
-      state->pc += (iword_t)insn.imm;
+      state->pc += (iword_t)insn.imm - RV_INSNLEN;
       break;
     case RV_INSN__JALR:
+    {
+      word_t target = (rvmem_reg (state, insn.rs1) + insn.imm) & ~1;
       *rvmem_regp (state, insn.rd) = state->pc + RV_INSNLEN;
-      state->pc
-        = ((iword_t)rvmem_reg (state, insn.rs1) + (iword_t)insn.imm) & ~1;
+      state->pc = target - RV_INSNLEN;
       break;
+    }
 
     /* Upper imm. insns. */
     case RV_INSN__LUI:
@@ -319,8 +356,3 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       __builtin_unreachable ();
   }
 }
-
-#undef DISPATCH_BINOP
-#undef DISPATCH_BINOP_I
-#undef DISPATCH_BINOP_U
-#undef DISPATCH_BINOP_IU

@@ -1,7 +1,6 @@
 #include "platform.h"
 #include "emu.h"
 
-#ifdef DEBUG
 # define INSN_MAP_ENTRY(insn) [RV_INSN__##insn] = #insn
 # define INSN_MAP_ENTRY_S(insn, repr) [RV_INSN__##insn] = repr
 const char* const repr_insn_map[] = {
@@ -160,4 +159,3 @@ const char* const repr_reg_abi_map[] = {
   "t6"
 };
 # undef INSN_MAP_ENTRY
-#endif

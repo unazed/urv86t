@@ -48,6 +48,10 @@ main (int argc, char** argv)
   {
     fprintf (stderr, "failed to parse executable as ELF file\n");
     goto clean;
+  } else if (!elf_ctx->bp)
+  {
+    fprintf (stderr, "failed to allocate stack/heap for emulator\n");
+    goto clean;
   }
 
   emu_state = rvstate_init (elf_ctx);
@@ -57,7 +61,10 @@ main (int argc, char** argv)
     goto clean;
   } 
 
-  while (rvemu_step (emu_state));
+  while (rvemu_step (emu_state))
+  {
+
+  }
   rvtrbk_print_dump (emu_state);
 
 clean:

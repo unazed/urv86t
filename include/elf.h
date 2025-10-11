@@ -102,24 +102,12 @@ typedef struct
   Elf32_Word p_align;
 } Elf32_Phdr;
 
-typedef struct
-{
- Elf32_Addr r_offset;
- Elf32_Word r_info;
-} Elf32_Rel;
-
-typedef struct
-{
-  Elf32_Addr r_offset;
-  Elf32_Word r_info;
-  Elf32_Sword r_addend;
-} Elf32_Rela;
-
 struct elf_load_region
 {
   u32 vma_base;
   u8* mem_base;
   u32 size;
+  const char* tag;
 };
 
 typedef struct elf_context

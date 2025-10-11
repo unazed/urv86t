@@ -61,45 +61,45 @@ elf_init (u8* const bytes, size_t length)
   switch (ehdr->e_ident[4])
   {
     case EI_ELFCLASSNONE:
-      rvtrbk_debug ("\tfile class: unspecified\n");
+      rvtrbk_debug ("\tFile class: unspecified\n");
       return ctx;
     case EI_ELFCLASS32:
-      rvtrbk_debug ("\tfile class: 32 bit\n");
+      rvtrbk_debug ("\tFile class: 32 bit\n");
       break;
     case EI_ELFCLASS64:
-      rvtrbk_debug ("\tfile class: 64 bit\n");
+      rvtrbk_debug ("\tFile class: 64 bit\n");
       break;
     default:
-      rvtrbk_debug ("\tfile class: unrecognised class\n");
+      rvtrbk_debug ("\tFile class: unrecognised class\n");
       return ctx;
   }
 
   switch (ehdr->e_ident[5])
   {
     case EI_ELFDATANONE:
-      rvtrbk_debug ("\tdata encoding: unspecified\n");
+      rvtrbk_debug ("\tData encoding: unspecified\n");
       return ctx;
     case EI_ELFDATA2LSB:
-      rvtrbk_debug ("\tdata encoding: little-endian\n");
+      rvtrbk_debug ("\tData encoding: little-endian\n");
       break;
     case EI_ELFDATA2MSB:
-      rvtrbk_debug ("\tdata encoding: big-endian\n");
+      rvtrbk_debug ("\tData encoding: big-endian\n");
       break;
     default:
-      rvtrbk_debug ("\tdata encoding: unrecognised\n");
+      rvtrbk_debug ("\tData encoding: unrecognised\n");
       return ctx;
   }
 
   switch (ehdr->e_ident[6])
   {
     case EI_EV_NONE:
-      rvtrbk_debug ("\tfile version: none\n");
+      rvtrbk_debug ("\tFile version: none\n");
       return ctx;
     case EI_EV_CURRENT:
-      rvtrbk_debug ("\tfile version: current\n");
+      rvtrbk_debug ("\tFile version: current\n");
       break;
     default:
-      rvtrbk_debug ("\tfile version: unrecognised\n");
+      rvtrbk_debug ("\tFile version: unrecognised\n");
       return ctx;
   }
 
@@ -154,6 +154,33 @@ elf_init (u8* const bytes, size_t length)
   rvtrbk_debug ("Entry-point at 0x%" PRIx32 "\n", ehdr->e_entry);
 
   rvtrbk_debug (
+    "We have %" PRIu16 " section header(s), %" PRIu16 " bytes each\n",
+    ehdr->e_shnum, ehdr->e_shentsize);
+
+  auto strtab_ent
+    = (Elf32_Shdr *)(
+        bytes + ehdr->e_shoff + ehdr->e_shstrndx * ehdr->e_shentsize);
+  u8* strtab = bytes + strtab_ent->sh_offset;
+  u32 bss_start = 0, bss_size = 0;
+
+  for (size_t sh_idx = 0; sh_idx < ehdr->e_shnum; ++sh_idx)
+  {
+    auto sh_ent
+      = (Elf32_Shdr *)(bytes + ehdr->e_shoff + sh_idx * ehdr->e_shentsize);
+    if (!sh_ent->sh_addr)
+      continue;
+    const char* shstr_ent = &((char *)strtab)[sh_ent->sh_name];
+    rvtrbk_debug (
+      "\t0x%08" PRIx32 " - 0x%08" PRIx32 ": %s\n",
+      sh_ent->sh_addr, sh_ent->sh_addr + sh_ent->sh_size, shstr_ent);
+    if (!strcmp (shstr_ent, ".bss"))
+    {
+      bss_start = sh_ent->sh_addr;
+      bss_size = sh_ent->sh_size;
+    }
+  }
+
+  rvtrbk_debug (
     "We have %" PRIu16 " program header(s), %" PRIu16 " bytes each\n",
     ehdr->e_phnum, ehdr->e_phentsize);
 
@@ -171,26 +198,27 @@ elf_init (u8* const bytes, size_t length)
       = (Elf32_Phdr *)(bytes + ehdr->e_phoff + ph_idx * ehdr->e_phentsize);
     if (!phdr->p_memsz)
     {
-      rvtrbk_debug ("\tsegment #%zu non-LOAD, skipping...\n", ph_idx);
+      rvtrbk_debug ("\tSegment #%zu non-LOAD, skipping...\n", ph_idx);
       continue;
     }
     if (phdr->p_offset + phdr->p_filesz > length)
     {
       rvtrbk_debug (
-        "\tsegment #%zu specifies region outside of file\n", ph_idx);
+        "\tSegment #%zu specifies region outside of file\n", ph_idx);
       continue;
     }
     rvtrbk_debug (
-      "\tsegment #%zu (in file +0x%" PRIx32 ") loading %" PRIu32
+      "\tLOAD segment #%zu (in file +0x%" PRIx32 ") loading %" PRIu32
       " bytes to VMA 0x%" PRIx32 " (in file %" PRIu32 " bytes)\n",
       ph_idx, phdr->p_offset, phdr->p_memsz, phdr->p_vaddr, phdr->p_filesz);
-    auto region = &ctx->load_regions[ph_idx];
+    auto region = &ctx->load_regions[ph_count - 2];
     region->vma_base = phdr->p_vaddr;
     region->size = phdr->p_memsz;
     if ((region->mem_base = calloc (1, region->size)) == NULL)
       rvtrbk_fatal ("failed to allocate context LOAD region\n");
     region->mem_base = memcpy (
       region->mem_base, bytes + phdr->p_offset, phdr->p_filesz);
+    region->tag = "LOAD";
     rvtrbk_debug (
       "\t-\tallocated %" PRIu32" byte region to %p\n", region->size,
       region->mem_base);
@@ -205,16 +233,33 @@ elf_init (u8* const bytes, size_t length)
   if (ctx->load_regions == NULL)
     rvtrbk_fatal ("failed to realloc-downsize LOAD regions\n");
 
-  /* auto heap = &ctx->load_regions[ph_count - 2];
-   * heap->size = PROG_HEAP_SIZE;
-   * heap->mem_base = calloc (1, heap->size);
-   * heap->vma_base = ...
-   */
+  if (!bss_start)
+  {
+    rvtrbk_debug (
+      "Failed to find program break, no heap/stack will be allocated");
+    return ctx;
+  }
+  else
+  {
+    rvtrbk_debug (
+      "Program break at 0x08%" PRIx32 ", allocating 0x%" PRIx32 "/0x%" PRIx32
+      " byte stack/heap\n", bss_start, PROG_STACK_SIZE, PROG_HEAP_SIZE);
+  }
+
+  auto heap = &ctx->load_regions[ph_count - 2];
+  heap->size = PROG_HEAP_SIZE;
+  heap->mem_base = calloc (1, heap->size);
+  heap->vma_base = bss_start + bss_size;
+  heap->tag = "HEAP";
+
   auto stack = &ctx->load_regions[ph_count - 1];
   stack->mem_base = calloc (1, PROG_STACK_SIZE);
-  stack->vma_base = 0x0fff0000;
+  stack->size = PROG_STACK_SIZE;
+  stack->vma_base = heap->vma_base + PROG_HEAP_SIZE;
+  stack->tag = "STACK";
   ctx->bp = stack->vma_base;
-  ctx->sp = stack->vma_base + stack->size; 
+  ctx->sp = stack->vma_base + stack->size - 1; 
+
   return ctx;
 }
 

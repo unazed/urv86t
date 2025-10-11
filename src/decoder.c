@@ -246,12 +246,14 @@ rvdec_Ity (rvstate_t state, union insn_base insn)
   }
 
   if (canon_insn.insn_ty != RV_INSN__INVALID)
+  {
     rvtrbk_debug (
       "\tI-type %s %s, %s, %" PRIi16 "\n",
       repr_insn_map[canon_insn.insn_ty],
       repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
       canon_insn.imm
     );
+  }
 
   return canon_insn;
 }
@@ -425,6 +427,7 @@ rvdec_insn (rvstate_t state, word_t bytes)
     return rvdec_R4ty (state, as_base);
   }
   #endif
+  rvtrbk_debug ("failed to parse insn.: %" PRIu32 "\n", bytes);
   rvtrbk_diagn (state, "unrecognised instruction format");
   return (insn_t){ .insn_ty = RV_INSN__INVALID };
 }

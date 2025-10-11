@@ -48,6 +48,8 @@ rvemu_dispatch_syscall (rvstate_t state)
       void* buff = rvmem_at (state, *REGARGPn(1));
       *REGARGPn(0) = rvsysc_read (state, fd, buff, count);
       break;
+    default:
+      __builtin_unreachable ();
   }
 #undef REGARGn
 }
@@ -114,17 +116,17 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__SB:
       rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *(i8 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
-        = (i8)insn.imm;
+        = (i8)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SH:
       rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *(hiword_t *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
-        = (hiword_t)insn.imm;
+        = (hiword_t)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SW:
       rvtrbk_bndcheck_mem (state, rvmem_reg (state, insn.rs1) + insn.imm);
       *(iword_t *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
-        = (iword_t)insn.imm;
+        = (iword_t)rvmem_reg (state, insn.rs2);
       break;
 
     /* Branch insns. */
@@ -180,7 +182,8 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       break;
     case RV_INSN__JALR:
       *rvmem_regp (state, insn.rd) = state->pc + RV_INSNLEN;
-      state->pc = (iword_t)rvmem_reg (state, insn.rs1) + (iword_t)insn.imm;
+      state->pc
+        = ((iword_t)rvmem_reg (state, insn.rs1) + (iword_t)insn.imm) & ~1;
       break;
 
     /* Upper imm. insns. */
@@ -263,11 +266,11 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FLx:
       switch (insn.funct)
       {
-        case 0b010:  /* single-precision */
+        case RISCV_FLTFUNC_SINGLE:
           *rvmem_fregp (state, insn.rd) = rvfloat_nanbox_saturate (
             *rvmem_at_ty (u32, state, rvmem_reg (state, insn.rs1) + insn.imm));
           break;
-        case 0b011:  /* double-precision */
+        case RISCV_FLTFUNC_DOUBLE:
           *rvmem_fregp (state, insn.rd)
             = *rvmem_at_ty (u64, state, rvmem_reg (state, insn.rs1) + insn.imm);
           break;
@@ -278,11 +281,11 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FSx:
       switch (insn.funct)
       {
-        case 0b010:
+        case RISCV_FLTFUNC_SINGLE:
           *rvmem_at_ty (u32, state, rvmem_reg (state, insn.rs1) + insn.imm) \
             = rvfloat_nanbox_unpack (rvmem_freg (state, insn.rs2));
           break;
-        case 0b011:
+        case RISCV_FLTFUNC_DOUBLE:
           *rvmem_at_ty (u64, state, rvmem_reg (state, insn.rs1) + insn.imm) \
             = rvmem_freg (state, insn.rs2);
           break;
@@ -291,6 +294,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       }
       break;
     case RV_INSN__FMADDx:
+      /* TODO: implement */
     case RV_INSN__FMSUBx:
     case RV_INSN__FNMSUBx:
     case RV_INSN__FNMADDx:
@@ -304,16 +308,11 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FSGNJXx:
     case RV_INSN__FMINx:
     case RV_INSN__FMAXx:
-    case RV_INSN__FCVT_W_x:
-    case RV_INSN__FCVT_WU_x:
-    case RV_INSN__FCVT_x_W:
-    case RV_INSN__FCVT_x_WU:
-    case RV_INSN__FMV_x_W:
     case RV_INSN__FEQx:
     case RV_INSN__FLTx:
     case RV_INSN__FLEx:
     case RV_INSN__FCLASSx:
-    case RV_INSN__FMV_W_x:
+
       break;
 #endif
     case RV_INSN__INVALID:

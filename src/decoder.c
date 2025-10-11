@@ -111,8 +111,8 @@ rvdec_Ity__6 (rvstate_t state, union insn_base insn)
 {
   switch (insn.i.funct3)
   {
-    case 0b010:  /* single-precision */
-    case 0b011:  /* double precision */
+    case RISCV_FLTFUNC_SINGLE:
+    case RISCV_FLTFUNC_DOUBLE:
       return RV_INSN__FLx;
     default:
       rvtrbk_diagn (state, "unrecognised float-load function bits");
@@ -144,8 +144,8 @@ rvdec_Sty__2 (rvstate_t state, union insn_base insn)
 {
   switch (insn.s.funct3)
   {
-    case 0b010:
-    case 0b011:
+    case RISCV_FLTFUNC_SINGLE:
+    case RISCV_FLTFUNC_DOUBLE:
       return RV_INSN__FSx;
     default:
       rvtrbk_diagn (state, "unrecognised float store insn. function bits"); 
@@ -198,6 +198,29 @@ rvdec_Rty (rvstate_t state, union insn_base insn)
 
   return canon_insn;
 }
+
+#ifdef EXT_RV32FD
+static insn_t
+rvdec_R4ty (rvstate_t state, union insn_base insn)
+{
+  (void)state;
+  insn_t canon_insn = {
+    .rs1 = insn.b.rs1,
+    .rs2 = insn.b.rs2,
+    .funct = insn.b.funct3,
+    .imm = SIGNEXT(
+      (insn.b.imm__12 << 12)
+        | (insn.b.imm__11 << 11)
+        | (insn.b.imm__10_5 << 5)
+        | (insn.b.imm__4_1 << 1),
+      1 << 12
+    )
+  };
+
+
+  return canon_insn;
+}
+#endif
 
 static insn_t
 rvdec_Ity (rvstate_t state, union insn_base insn)
@@ -266,7 +289,7 @@ rvdec_Uty (rvstate_t state, union insn_base insn)
   (void)state;
   insn_t canon_insn = {
     .rd = insn.u.rd,
-    .imm = insn.u.imm__31_12 << 12
+    .imm = insn.u.imm__31_12
   };
 
   switch (insn.u.opcode)
@@ -276,7 +299,7 @@ rvdec_Uty (rvstate_t state, union insn_base insn)
   }
 
   rvtrbk_debug (
-    "\tU-type %s %s, %" PRIi16 "\n",
+    "\tU-type %s %s, %" PRIu32 "\n",
     repr_insn_map[canon_insn.insn_ty],
     repr_reg_abi_map[canon_insn.rd], canon_insn.imm
   );
@@ -353,34 +376,55 @@ rvdec_insn (rvstate_t state, word_t bytes)
   auto as_base = (union insn_base)bytes;
   if (RISCV_INSN_OPCOND__R(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding R-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding R-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Rty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__I(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding I-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding I-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Ity (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__S(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding S-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding S-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Sty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__U(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding U-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding U-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Uty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__J(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding J-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding J-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Jty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__B(as_base.x.opcode))
   {
-    rvtrbk_debug ("decoding B-format insn. (%08" PRIx32 ")\n", bytes);
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding B-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
     return rvdec_Bty (state, as_base);
   }
+  #ifdef EXT_RV32FD
+  else if (RISCV_INSN_OPCOND__R4(as_base.x.opcode))
+  {
+    rvtrbk_debug (
+      "%" PRIx32 ": decoding R4-format insn. (%08" PRIx32 ")\n",
+      state->pc - 4, bytes);
+    return rvdec_R4ty (state, as_base);
+  }
+  #endif
   rvtrbk_diagn (state, "unrecognised instruction format");
   return (insn_t){ .insn_ty = RV_INSN__INVALID };
 }

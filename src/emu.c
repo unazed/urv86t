@@ -4,14 +4,15 @@
 #include "traceback.h"
 
 rvstate_t
-rvstate_init (u8* const code, size_t len)
+rvstate_init (elfctx_t ctx)
 {
   rvtrbk_debug ("allocating emulation context\n");
   rvstate_t state = calloc (1, sizeof (struct rvstate));
   if (state == NULL)
     rvtrbk_fatal ("failed to allocate emulation context\n");
-  state->mem.ptr = code;
-  state->mem.size = len;
+  state->mem = ctx;
+  state->pc = ctx->entrypoint;
+  state->regs[2] = ctx->sp;
   return state;
 }
 
@@ -25,19 +26,32 @@ rvstate_free (rvstate_t state)
 static word_t
 rvstate_fetch (rvstate_t state)
 {
-  auto insn = *(word_t *)(state->mem.ptr + state->pc);
+  auto insn_ptr = elf_vma_to_mem (state->mem, state->pc);
+  if (insn_ptr == NULL)
+  {
+    rvtrbk_debug ("failed to fetch from pc: 0x%" PRIx32 "\n", state->pc);
+    return 0;
+  }
+  auto insn = *(word_t *)insn_ptr;
   state->pc += sizeof (word_t);
   return insn;
 }
 
 void*
-rvmem_at (rvstate_t state, size_t pos)
+rvmem_at (rvstate_t state, u32 addr)
 {
-  return state->mem.ptr + pos;
+  void* ptr = (void *)elf_vma_to_mem (state->mem, addr);
+  if (ptr == NULL)
+  {
+    rvtrbk_debug ("tried to fetch out of bounds insn.: 0x%" PRIx32 "\n", addr);
+    state->suspended = true;
+    return NULL;
+  }
+  return ptr;
 }
 
 void*
-rvmem_at_pc (rvstate_t state, ssize_t offs)
+rvmem_at_pc (rvstate_t state, i32 offs)
 {
   return rvmem_at (state, state->pc + offs);
 }
@@ -73,8 +87,7 @@ rvemu_step (rvstate_t state)
 {
   if (state->suspended)
     return false;
-  if (state->pc >= state->mem.size)
-    return false;
+  state->regs[0] = 0;
   auto insn = rvdec_insn (state, rvstate_fetch (state));
   if (insn.insn_ty == RV_INSN__INVALID)
     return false;

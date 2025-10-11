@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform.h"
+#include "elf.h"
 
 #define rvmem_at_ty(ty, state, pos) (ty *)rvmem_at ((state), (pos))
 
@@ -11,11 +12,7 @@ extern const char* const repr_reg_abi_map[];
 
 struct rvstate
 {
-  struct
-  {
-    u8* ptr;
-    size_t size;
-  } mem;
+  elfctx_t mem;
 #ifdef EXT_RV32FD
   freg_t fregs[RISCV_FREGCOUNT];
 #endif
@@ -27,11 +24,11 @@ struct rvstate
 typedef struct rvstate* rvstate_t;
 
 __attribute__ (( malloc ))
-rvstate_t rvstate_init (u8* const code, size_t len);
+rvstate_t rvstate_init (elfctx_t ctx);
 void rvstate_free (rvstate_t state);
 
-void* rvmem_at (rvstate_t state, size_t pos);
-void* rvmem_at_pc (rvstate_t state, ssize_t offs);
+void* rvmem_at (rvstate_t state, u32 addr);
+void* rvmem_at_pc (rvstate_t state, i32 offs);
 reg_t rvmem_reg (rvstate_t state, u8 sel);
 reg_t* rvmem_regp (rvstate_t state, u8 sel);
 #ifdef EXT_RV32FD

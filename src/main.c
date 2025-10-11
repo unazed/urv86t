@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "emu.h"
+#include "elf.h"
 #include "traceback.h"
 
 int
@@ -13,6 +14,7 @@ main (int argc, char** argv)
     return EXIT_FAILURE;
   }
 
+  elfctx_t elf_ctx = NULL;
   u8* emu_code = NULL;
   rvstate_t emu_state = NULL;
 
@@ -41,11 +43,18 @@ main (int argc, char** argv)
     goto clean;
   }
 
-  emu_state = rvstate_init (emu_code, fd_size);
+  elf_ctx = elf_init (emu_code, nread);
+  if (elf_ctx == NULL)
+  {
+    fprintf (stderr, "failed to parse executable as ELF file\n");
+    goto clean;
+  }
+
+  emu_state = rvstate_init (elf_ctx);
   if (emu_state == NULL)
   {
     fprintf (stderr, "failed to allocate emulation context\n");
-    return EXIT_FAILURE;
+    goto clean;
   } 
 
   while (rvemu_step (emu_state));
@@ -53,6 +62,7 @@ main (int argc, char** argv)
 
 clean:
   rvstate_free (emu_state);
+  elf_free (elf_ctx);
   free (emu_code);
   fclose (fd);
 

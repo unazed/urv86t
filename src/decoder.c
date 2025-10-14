@@ -323,9 +323,9 @@ rvdec_Jty (rvstate_t state, union insn_base insn)
   };
 
   rvtrbk_debug (
-    "\tJ-type %s (%d) %s, %" PRIi16 "\n",
-    repr_insn_map[canon_insn.insn_ty], canon_insn.insn_ty,
-    repr_reg_abi_map[canon_insn.rd], canon_insn.imm
+    "\tJ-type %s %s, %" PRIi16 "\n",
+    repr_insn_map[canon_insn.insn_ty], repr_reg_abi_map[canon_insn.rd],
+    canon_insn.imm
   );
 
   return canon_insn;
@@ -377,14 +377,14 @@ rvdec_insn (rvstate_t state, word_t bytes)
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding R-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Rty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__I(as_base.x.opcode))
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding I-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Ity (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__S(as_base.x.opcode))
@@ -424,7 +424,7 @@ rvdec_insn (rvstate_t state, word_t bytes)
     return rvdec_R4ty (state, as_base);
   }
 #endif
-  rvtrbk_debug ("failed to parse insn.: %" PRIu32 "\n", bytes);
+  rvtrbk_debug ("failed to parse insn.: %" PRIx32 "\n", bytes);
   rvtrbk_diagn (state, "unrecognised instruction format");
   return (insn_t){ .insn_ty = RV_INSN__INVALID };
 }

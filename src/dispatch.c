@@ -34,8 +34,13 @@ rvemu_dispatch_syscall (rvstate_t state)
       void* buff = rvmem_at (state, *REGARGPn(1));
       *REGARGPn(0) = rvsysc_read (state, fd, buff, count);
       break;
+    case RV_SYSCALL__EXIT:
+      rvsysc_exit (state, *REGARGPn(0));
+      return;
     default:
-      __builtin_unreachable ();
+      rvtrbk_debug ("unrecognized syscall\n");
+      state->suspended = true;
+      return;
   }
 #undef REGARGn
 }
@@ -53,6 +58,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
 #if RV32_HAS(BKPT)
   rvbkpt_check_insn (state, insn);
 #endif
+  i32 pc_offset = RISCV_INSNLEN;
   switch (insn.insn_ty)
   {
     /* Arithmetic/bitwise insns., reg-reg/reg-imm */
@@ -103,7 +109,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       break;
     case RV_INSN__SLLI:
       *rvmem_regp (state, insn.rd)
-        = rvmem_reg (state, insn.rs1) << (rvmem_reg (state, insn.rs2) & 0x1f);
+        = rvmem_reg (state, insn.rs1) << (insn.imm & 0x1f);
       break;
     case RV_INSN__SLTI:
       *rvmem_regp (state, insn.rd) = 
@@ -168,41 +174,69 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     /* Branch insns. */
     case RV_INSN__BEQ:
       if (rvmem_reg (state, insn.rs1) == rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
     case RV_INSN__BNE:
       if (rvmem_reg (state, insn.rs1) != rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
     case RV_INSN__BLT:
       if ((iword_t)rvmem_reg (state, insn.rs1)
           < (iword_t)rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
     case RV_INSN__BGE:
       if ((iword_t)rvmem_reg (state, insn.rs1)
           >= (iword_t)rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
     case RV_INSN__BLTU:
       if (rvmem_reg (state, insn.rs1) < rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
     case RV_INSN__BGEU:
       if (rvmem_reg (state, insn.rs1) >= rvmem_reg (state, insn.rs2))
+      {
         state->pc += (iword_t)insn.imm;
+        rvtrbk_debug ("-> 0x%" PRIx32 "\n\n", state->pc);
+        pc_offset = 0;
+      }
       break;
 
     /* Linked branch insns. */
     case RV_INSN__JAL:
       *rvmem_regp (state, insn.rd) = state->pc + RISCV_INSNLEN;
       state->pc += (iword_t)insn.imm;
+      rvtrbk_debug ("() -> 0x%" PRIx32 "\n\n", state->pc);
+      pc_offset = 0;
       break;
     case RV_INSN__JALR:
     {
       word_t target = (rvmem_reg (state, insn.rs1) + insn.imm) & ~1;
       *rvmem_regp (state, insn.rd) = state->pc + RISCV_INSNLEN;
       state->pc = target;
+      rvtrbk_debug ("() <-> 0x%" PRIx32 "\n\n", state->pc);
+      pc_offset = 0;
       break;
     }
 
@@ -313,7 +347,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       }
       break;
     case RV_INSN__FMADDx:
-      /* TODO: implement */
+      /* TODO: implement, preferably before dying of old age */
     case RV_INSN__FMSUBx:
     case RV_INSN__FNMSUBx:
     case RV_INSN__FNMADDx:
@@ -376,5 +410,5 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       __builtin_unreachable ();
   }
 
-  state->pc += RISCV_INSNLEN;
+  state->pc += pc_offset;
 }

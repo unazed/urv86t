@@ -1,9 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #include "emu.h"
 #include "elf.h"
 #include "traceback.h"
+
+void
+bkpt_user_loop (rvstate_t state, struct rvbkpt_ev* ev)
+{
+  printf ("Breakpoint hit at 0x%" PRIx32 "\n", ev->pc_cond.val);
+  while (1)
+  {
+    char cmd[32];
+    printf ("> ");
+    if (fgets (cmd, sizeof (cmd), stdin) == NULL)
+      break;
+    cmd[strcspn (cmd, "\n")] = 0;
+    for (char *p = cmd; *p; p++)
+      *p = tolower(*p);
+    
+    if (!strcmp (cmd, "c") || !strcmp (cmd, "continue"))
+      break;
+    else if (!strcmp (cmd, "s") || !strcmp (cmd, "step"))
+    {
+      rvemu_step (state);
+      continue;
+    }
+    else if (!strcmp (cmd, "r") || !strcmp (cmd, "regs"))
+    {
+      rvtrbk_print_dump (state);
+    }
+    else
+      printf ("Commands: c/continue, s/step, r/regs\n");
+  }
+}
 
 int
 main (int argc, char** argv)
@@ -67,7 +99,7 @@ main (int argc, char** argv)
     "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
   struct rvbkpt_ev entry_bkpt = {
     .pc_cond = {
-      .val = elf_ctx->entry_point,
+      .val = 0x10ccc,
       .comp = BKPTCOMP_EQ,
     },
     .one_shot = true, .active = true
@@ -81,10 +113,11 @@ main (int argc, char** argv)
     struct rvbkpt_ev* which = NULL;
     if ((which = rvbkpt_poll (state)) == NULL)
       continue;
-    rvtrbk_debug ("Triggered breakpoint!\n");
-    return 1;
+    bkpt_user_loop (state, which);
 #endif
   }
+
+  rvtrbk_print_dump (state);
 
 clean:
   rvstate_free (state);

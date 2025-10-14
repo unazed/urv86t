@@ -226,7 +226,7 @@ elf_init (u8* const bytes, size_t length)
   }
 
   ctx->nr_regions = ph_count;
-  ctx->entrypoint = ehdr->e_entry;
+  ctx->entry_point = ehdr->e_entry;
   ctx->load_regions = realloc (
     ctx->load_regions, ph_count * sizeof (struct elf_load_region));
 

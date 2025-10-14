@@ -16,7 +16,7 @@ main (int argc, char** argv)
 
   elfctx_t elf_ctx = NULL;
   u8* emu_code = NULL;
-  rvstate_t emu_state = NULL;
+  rvstate_t state = NULL;
 
   auto fd = fopen (argv[1], "rb");
   if (fd == NULL)
@@ -38,8 +38,9 @@ main (int argc, char** argv)
   size_t nread;
   if ((nread = fread (emu_code, 1, fd_size, fd)) != fd_size)
   {
-    fprintf (stderr,
-      "failed to read %zu bytes from file: %s (read %zu)\n", fd_size, argv[1], nread);
+    fprintf (
+      stderr, "failed to read %zu bytes from file: %s (read %zu)\n",
+      fd_size, argv[1], nread);
     goto clean;
   }
 
@@ -48,27 +49,45 @@ main (int argc, char** argv)
   {
     fprintf (stderr, "failed to parse executable as ELF file\n");
     goto clean;
-  } else if (!elf_ctx->bp)
+  }
+  else if (!elf_ctx->bp)
   {
     fprintf (stderr, "failed to allocate stack/heap for emulator\n");
     goto clean;
   }
 
-  emu_state = rvstate_init (elf_ctx);
-  if (emu_state == NULL)
+  state = rvstate_init (elf_ctx);
+  if (state == NULL)
   {
     fprintf (stderr, "failed to allocate emulation context\n");
     goto clean;
-  } 
-
-  while (rvemu_step (emu_state))
-  {
-
   }
-  rvtrbk_print_dump (emu_state);
+
+  rvtrbk_debug (
+    "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
+  struct rvbkpt_ev entry_bkpt = {
+    .pc_cond = {
+      .val = elf_ctx->entry_point,
+      .comp = BKPTCOMP_EQ,
+    },
+    .one_shot = true, .active = true
+  };
+
+  rvbkpt_add (state, &entry_bkpt);
+
+  while (rvemu_step (state))
+  {
+#if RV32_HAS(BKPT)
+    struct rvbkpt_ev* which = NULL;
+    if ((which = rvbkpt_poll (state)) == NULL)
+      continue;
+    rvtrbk_debug ("Triggered breakpoint!\n");
+    return 1;
+#endif
+  }
 
 clean:
-  rvstate_free (emu_state);
+  rvstate_free (state);
   elf_free (elf_ctx);
   free (emu_code);
   fclose (fd);

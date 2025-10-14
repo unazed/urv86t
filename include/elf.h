@@ -114,7 +114,7 @@ typedef struct elf_context
 {
   struct elf_load_region* load_regions;
   size_t nr_regions;
-  u32 entrypoint;
+  u32 entry_point;
   u32 bp, sp;
 } *elfctx_t;
 

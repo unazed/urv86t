@@ -16,7 +16,7 @@
   RV_INSN__C_AND, \
   RV_INSN__C_J, \
   RV_INSN__C_BEQZ, \
-  RV_INSN__C_BNEZ \
+  RV_INSN__C_BNEZ, \
   RV_INSN__C_ADDI4SPN, \
   RV_INSN__C_FLD, \
   RV_INSN__C_LW, \

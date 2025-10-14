@@ -52,7 +52,7 @@ const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY(CSRRWI),
   INSN_MAP_ENTRY(CSRRSI),
   INSN_MAP_ENTRY(CSRRCI),
-#ifdef EXT_RV32M
+#if RV32_HAS(EXT_M)
   INSN_MAP_ENTRY(MUL),
   INSN_MAP_ENTRY(MULH),
   INSN_MAP_ENTRY(MULHSU),
@@ -62,7 +62,7 @@ const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY(REM),
   INSN_MAP_ENTRY(REMU),
 #endif
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
   INSN_MAP_ENTRY_S(FLx, "fl.x"),
   INSN_MAP_ENTRY_S(FSx, "fs.x"),
   INSN_MAP_ENTRY_S(FMADDx, "fmadd.x"),
@@ -84,7 +84,7 @@ const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY_S(FLEx, "fle.x"),
   INSN_MAP_ENTRY_S(FCLASSx, "fclass.x"),
 #endif
-#ifdef EXT_RV32C
+#if RV32_HAS(EXT_C)
   INSN_MAP_ENTRY_S(C_NOP, "c.nop"),
   INSN_MAP_ENTRY_S(C_ADDI, "c.addi"),
   INSN_MAP_ENTRY_S(C_JAL, "c.jal"),

@@ -2,16 +2,17 @@
 
 #include "emu.h"
 #include "traceback.h"
+#include "elf.h"
 
 rvstate_t
 rvstate_init (elfctx_t ctx)
 {
-  rvtrbk_debug ("allocating emulation context\n");
+  rvtrbk_debug ("Allocating emulation context\n");
   rvstate_t state = calloc (1, sizeof (struct rvstate));
   if (state == NULL)
     rvtrbk_fatal ("failed to allocate emulation context\n");
   state->mem = ctx;
-  state->pc = ctx->entrypoint;
+  state->pc = ctx->entry_point;
   state->regs[2] = ctx->sp;
   return state;
 }
@@ -19,7 +20,7 @@ rvstate_init (elfctx_t ctx)
 void
 rvstate_free (rvstate_t state)
 {
-  rvtrbk_debug ("finalising emulation state\n");
+  rvtrbk_debug ("Finalising emulation state\n");
   free (state);
 }
 
@@ -29,12 +30,10 @@ rvstate_fetch (rvstate_t state)
   auto insn_ptr = elf_vma_to_mem (state->mem, state->pc);
   if (insn_ptr == NULL)
   {
-    rvtrbk_debug ("failed to fetch from pc: 0x%" PRIx32 "\n", state->pc);
+    rvtrbk_debug ("Failed to fetch from pc: 0x%" PRIx32 "\n", state->pc);
     return 0;
   }
-  auto insn = *(word_t *)insn_ptr;
-  state->pc += sizeof (word_t);
-  return insn;
+  return *(word_t *)insn_ptr;
 }
 
 void*
@@ -68,7 +67,7 @@ rvmem_reg (rvstate_t state, u8 sel)
   return *rvmem_regp (state, sel);
 }
 
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
 freg_t*
 rvmem_fregp (rvstate_t state, u8 sel)
 {

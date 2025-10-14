@@ -30,7 +30,6 @@ rvemu_dispatch_syscall (rvstate_t state)
   switch (syscall_no)
   {
     case RV_SYSCALL__READ:
-      rvtrbk_bndcheck_range (state, *REGARGPn(1), *REGARGPn(2));
       iword_t fd = *REGARGPn(0), count = *REGARGPn(2);
       void* buff = rvmem_at (state, *REGARGPn(1));
       *REGARGPn(0) = rvsysc_read (state, fd, buff, count);
@@ -51,6 +50,9 @@ rvemu_dispatch_debug (rvstate_t state)
 void
 rvemu_dispatch (rvstate_t state, insn_t insn)
 {
+#if RV32_HAS(BKPT)
+  rvbkpt_check_insn (state, insn);
+#endif
   switch (insn.insn_ty)
   {
     /* Arithmetic/bitwise insns., reg-reg/reg-imm */
@@ -96,7 +98,6 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       *rvmem_regp (state, insn.rd)
         = rvmem_reg (state, insn.rs1) & rvmem_reg (state, insn.rs2);
       break;
-
     case RV_INSN__ADDI:
       *rvmem_regp (state, insn.rd) = rvmem_reg (state, insn.rs1) + insn.imm;
       break;
@@ -167,59 +168,41 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     /* Branch insns. */
     case RV_INSN__BEQ:
       if (rvmem_reg (state, insn.rs1) == rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (i32)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__BNE:
       if (rvmem_reg (state, insn.rs1) != rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__BLT:
       if ((iword_t)rvmem_reg (state, insn.rs1)
           < (iword_t)rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__BGE:
       if ((iword_t)rvmem_reg (state, insn.rs1)
           >= (iword_t)rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__BLTU:
       if (rvmem_reg (state, insn.rs1) < rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__BGEU:
       if (rvmem_reg (state, insn.rs1) >= rvmem_reg (state, insn.rs2))
-      {
-        rvtrbk_bndcheck_jmp (state, insn.imm);
-        state->pc += (iword_t)insn.imm - RV_INSNLEN;
-      }
+        state->pc += (iword_t)insn.imm;
       break;
 
     /* Linked branch insns. */
     case RV_INSN__JAL:
-      *rvmem_regp (state, insn.rd) = state->pc + RV_INSNLEN;
-      state->pc += (iword_t)insn.imm - RV_INSNLEN;
+      *rvmem_regp (state, insn.rd) = state->pc + RISCV_INSNLEN;
+      state->pc += (iword_t)insn.imm;
       break;
     case RV_INSN__JALR:
     {
       word_t target = (rvmem_reg (state, insn.rs1) + insn.imm) & ~1;
-      *rvmem_regp (state, insn.rd) = state->pc + RV_INSNLEN;
-      state->pc = target - RV_INSNLEN;
+      *rvmem_regp (state, insn.rd) = state->pc + RISCV_INSNLEN;
+      state->pc = target;
       break;
     }
 
@@ -255,8 +238,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       rvtrbk_diagn (state, "unimplemented CSR. instructions");
       break;
 
-#ifdef EXT_RV32M
-    /* RV32M insns. */
+#if RV32_HAS(EXT_M)
     case RV_INSN__MUL:
       *rvmem_regp (state, insn.rd)
         = rvmem_reg (state, insn.rs1) * rvmem_reg (state, insn.rs2);
@@ -299,7 +281,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
         = rvmem_reg (state, insn.rs1) % rvmem_reg (state, insn.rs2);
       break;
 #endif
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
     case RV_INSN__FLx:
       switch (insn.funct)
       {
@@ -349,10 +331,50 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FLTx:
     case RV_INSN__FLEx:
     case RV_INSN__FCLASSx:
-
       break;
+#endif
+#if RV32_HAS(EXT_C)
+    case RV_INSN__C_NOP:
+    case RV_INSN__C_ADDI:
+    case RV_INSN__C_JAL:
+    case RV_INSN__C_LI:
+    case RV_INSN__C_ADDI16SP:
+    case RV_INSN__C_LUI:
+    case RV_INSN__C_SRLI:
+    case RV_INSN__C_SRAI:
+    case RV_INSN__C_ANDI:
+    case RV_INSN__C_SUB:
+    case RV_INSN__C_XOR:
+    case RV_INSN__C_OR:
+    case RV_INSN__C_AND:
+    case RV_INSN__C_J:
+    case RV_INSN__C_BEQZ:
+    case RV_INSN__C_BNEZ:
+    case RV_INSN__C_ADDI4SPN:
+    case RV_INSN__C_FLD:
+    case RV_INSN__C_LW:
+    case RV_INSN__C_FLW:
+    case RV_INSN__C_FSD:
+    case RV_INSN__C_SW:
+    case RV_INSN__C_FSW:
+    case RV_INSN__C_SLLI:
+    case RV_INSN__C_SLLI64:
+    case RV_INSN__C_FLDSP:
+    case RV_INSN__C_LWSP:
+    case RV_INSN__C_FLWSP:
+    case RV_INSN__C_JR:
+    case RV_INSN__C_MV:
+    case RV_INSN__C_EBREAK:
+    case RV_INSN__C_JALR:
+    case RV_INSN__C_ADD:
+    case RV_INSN__C_FSDSP:
+    case RV_INSN__C_SWSP:
+    case RV_INSN__C_FSWSP:
+      __builtin_unreachable ();
 #endif
     case RV_INSN__INVALID:
       __builtin_unreachable ();
   }
+
+  state->pc += RISCV_INSNLEN;
 }

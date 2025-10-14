@@ -105,7 +105,7 @@ rvdec_Ity__5 (rvstate_t state, union insn_base insn)
   }
 }
 
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
 static inline enum e_insn
 rvdec_Ity__6 (rvstate_t state, union insn_base insn)
 {
@@ -138,22 +138,6 @@ rvdec_Sty__1 (rvstate_t state, union insn_base insn)
   }
 }
 
-#ifdef EXT_RV32FD
-static inline enum e_insn
-rvdec_Sty__2 (rvstate_t state, union insn_base insn)
-{
-  switch (insn.s.funct3)
-  {
-    case RISCV_FLTFUNC_SINGLE:
-    case RISCV_FLTFUNC_DOUBLE:
-      return RV_INSN__FSx;
-    default:
-      rvtrbk_diagn (state, "unrecognised float store insn. function bits"); 
-      return RV_INSN__INVALID;
-  }
-}
-#endif
-
 static insn_t
 rvdec_Rty (rvstate_t state, union insn_base insn)
 {
@@ -177,7 +161,7 @@ rvdec_Rty (rvstate_t state, union insn_base insn)
     INSN_CASE(0b0100000101, RV_INSN__SRA);
     INSN_CASE(0b0000000110, RV_INSN__OR);
     INSN_CASE(0b0000000111, RV_INSN__AND);
-#ifdef EXT_RV32M
+#if RV32_HAS(EXT_M)
     INSN_CASE(0b0000001000, RV_INSN__MUL);
     INSN_CASE(0b0000001001, RV_INSN__MULH)
     INSN_CASE(0b0000001010, RV_INSN__MULHSU);
@@ -199,7 +183,21 @@ rvdec_Rty (rvstate_t state, union insn_base insn)
   return canon_insn;
 }
 
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
+static inline enum e_insn
+rvdec_Sty__2 (rvstate_t state, union insn_base insn)
+{
+  switch (insn.s.funct3)
+  {
+    case RISCV_FLTFUNC_SINGLE:
+    case RISCV_FLTFUNC_DOUBLE:
+      return RV_INSN__FSx;
+    default:
+      rvtrbk_diagn (state, "unrecognised float store insn. function bits"); 
+      return RV_INSN__INVALID;
+  }
+}
+
 static insn_t
 rvdec_R4ty (rvstate_t state, union insn_base insn)
 {
@@ -216,7 +214,6 @@ rvdec_R4ty (rvstate_t state, union insn_base insn)
       1 << 12
     )
   };
-
 
   return canon_insn;
 }
@@ -240,7 +237,7 @@ rvdec_Ity (rvstate_t state, union insn_base insn)
     INSN_OP_CASE(RISCV_INSN_I__ARITH, I, 3);
     INSN_OP_CASE(RISCV_INSN_I__SYNCH, I, 4);
     INSN_OP_CASE(RISCV_INSN_I__ENV,   I, 5);
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
     INSN_OP_CASE(RISCV_INSN_I__FLOAT, I, 6);
 #endif
   }
@@ -271,7 +268,7 @@ rvdec_Sty (rvstate_t state, union insn_base insn)
   switch (insn.s.opcode)
   {
     INSN_OP_CASE(RISCV_INSN_S__REG,   S, 1);
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
     INSN_OP_CASE(RISCV_INSN_S__FLOAT, S, 2);
 #endif
   }
@@ -394,39 +391,39 @@ rvdec_insn (rvstate_t state, word_t bytes)
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding S-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Sty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__U(as_base.x.opcode))
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding U-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Uty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__J(as_base.x.opcode))
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding J-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Jty (state, as_base);
   }
   else if (RISCV_INSN_OPCOND__B(as_base.x.opcode))
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding B-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_Bty (state, as_base);
   }
-  #ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
   else if (RISCV_INSN_OPCOND__R4(as_base.x.opcode))
   {
     rvtrbk_debug (
       "%" PRIx32 ": decoding R4-format insn. (%08" PRIx32 ")\n",
-      state->pc - 4, bytes);
+      state->pc, bytes);
     return rvdec_R4ty (state, as_base);
   }
-  #endif
+#endif
   rvtrbk_debug ("failed to parse insn.: %" PRIu32 "\n", bytes);
   rvtrbk_diagn (state, "unrecognised instruction format");
   return (insn_t){ .insn_ty = RV_INSN__INVALID };

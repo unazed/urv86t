@@ -1,18 +1,12 @@
 #pragma once
 
 #include "types.h"
-#ifdef EXT_RV32FD
-# include "rv32fd.h"
-#endif
-#ifdef EXT_RV32C
-# include "rv32c.h"
-#endif
-#ifdef EXT_RV32M
-# include "rv32m.h"
-#endif
+#include "feature.h"
 
-#define RISCV_IALIGN_BYTES (sizeof (word_t))
-#define RV_INSNLEN         (sizeof (word_t))
+#define RISCV_IALIGN_BYTES  (sizeof (word_t))
+#define RISCV_XLEN_BYTES    (4)
+#define RISCV_INSNLEN       (sizeof (word_t))
+#define RISCV_REGCOUNT      (32)
 
 #define RISCV_INSN_I__JALR  (0b1100111)
 #define RISCV_INSN_I__LOAD  (0b0000011)
@@ -44,22 +38,18 @@
 #define SIGNEXT(word, sign_bit) \
   (((word) & (sign_bit))? ((word) | ~((sign_bit) - 1)): (word))
 
-#ifdef ENABLE_RV32I
-# define RISCV_REGCOUNT (32)
-# define RISCV_XLEN_BYTES (4)
 typedef u32 reg_t;
-#else
-# error "Compilation selector for ISA unset"
-#endif
-
+typedef i32 ireg_t;
 typedef u32 word_t;
 typedef i32 iword_t;
 typedef u16 hword_t;
-typedef i16 hiword_t;
+typedef i16 ihword_t;
+
+#include "feature-nodep.h"
 
 enum e_insn
 {
-  RV_INSN__INVALID,
+  RV_INSN__INVALID = 0,
 
   /* RV32I insns. */
   RV_INSN__LUI,
@@ -109,18 +99,18 @@ enum e_insn
   RV_INSN__CSRRWI,
   RV_INSN__CSRRSI,
   RV_INSN__CSRRCI,
-#ifdef EXT_RV32M
+#if RV32_HAS(EXT_M)
   EXT_RV32M_INSNS,
 #endif
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
   EXT_RV32FD_INSNS,
 #endif
-#ifdef EXT_RV32C
+#if RV32_HAS(EXT_C)
   EXT_RV32C_INSNS,
 #endif
 };
 
-typedef struct
+typedef struct insn_
 {
   enum e_insn insn_ty;
   u8 rd, rs1, rs2;
@@ -130,10 +120,6 @@ typedef struct
 
 union insn_base
 {
-  /* `insn_base.x` is a generic semantic concept, since some instructions
-   * don't strictly adhere to their format, and it's clearer to readers than
-   * using the R-format to decapsulate another format 
-   */
   struct
   {
     word_t opcode : 7;
@@ -143,7 +129,7 @@ union insn_base
     word_t rs2 : 5;
     word_t funct7 : 7;
   } r, x;
-#ifdef EXT_RV32FD
+#if RV32_HAS(EXT_FD)
   struct
   {
     word_t opcode : 7;
@@ -198,7 +184,7 @@ union insn_base
     word_t imm__10_1 : 10;
     word_t imm__20 : 1;
   } j;
-#ifdef EXT_RV32C
+#if RV32_HAS(EXT_C)
   /* `rd_p` (rd'), `rs1_p` (rs1') and `rs2_p` (rs2') refer to
    * `a0`-`a5` (x10-x15), `s0`-`s1` (x8-x9), `sp` (x2) and `ra` (x1)
    */
@@ -268,3 +254,5 @@ union insn_base
 };
 
 _Static_assert (sizeof (union insn_base) == sizeof (word_t));
+
+#include "feature-dep.h"

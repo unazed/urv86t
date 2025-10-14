@@ -20,7 +20,7 @@ RVSYSC_DEFN(rvsysc_write, iword_t fd, void* buff, word_t count)
 RVSYSC_DEFN(rvsysc_exit, iword_t code)
 {
   (void)state;
-  printf ("exited with code %" PRIi32 "\n", code);
+  printf ("exited with code (%" PRIi32 ")\n", code);
   state->suspended = true;
   return 0;
 }

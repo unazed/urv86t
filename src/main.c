@@ -10,7 +10,8 @@
 void
 bkpt_user_loop (rvstate_t state, struct rvbkpt_ev* ev)
 {
-  printf ("Breakpoint hit at 0x%" PRIx32 "\n", ev->pc_cond.val);
+  (void)ev;
+  printf ("Breakpoint hit at 0x%" PRIx32 "\n", state->pc);
   while (1)
   {
     char cmd[32];
@@ -99,8 +100,8 @@ main (int argc, char** argv)
     "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
   struct rvbkpt_ev entry_bkpt = {
     .pc_cond = {
-      .val = 0x10ccc,
-      .comp = BKPTCOMP_EQ,
+      .val = 0x107a8,
+      .comp = BKPTCOMP_GT,
     },
     .one_shot = true, .active = true
   };

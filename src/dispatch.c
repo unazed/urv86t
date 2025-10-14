@@ -25,15 +25,26 @@ rvemu_dispatch_syscall (rvstate_t state)
    */
 
   auto syscall_no = state->regs[17];
-  rvtrbk_debug ("invoked syscall (%" PRIu16 ")\n", syscall_no);
+  printf (
+    "invoked syscall (%" PRIu16 ", %s) at 0x%" PRIx32 "\n",
+    syscall_no, repr_syscall_map[syscall_no], state->pc);
   
   switch (syscall_no)
   {
     case RV_SYSCALL__READ:
+    {
       iword_t fd = *REGARGPn(0), count = *REGARGPn(2);
       void* buff = rvmem_at (state, *REGARGPn(1));
       *REGARGPn(0) = rvsysc_read (state, fd, buff, count);
       break;
+    }
+    case RV_SYSCALL__WRITE:
+    {
+      iword_t fd = *REGARGPn(0), count = *REGARGPn(2);
+      void* buff = rvmem_at (state, *REGARGPn(1));
+      *REGARGPn(0) = rvsysc_write (state, fd, buff, count);
+      break;
+    }
     case RV_SYSCALL__EXIT:
       rvsysc_exit (state, *REGARGPn(0));
       return;
@@ -112,8 +123,8 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
         = rvmem_reg (state, insn.rs1) << (insn.imm & 0x1f);
       break;
     case RV_INSN__SLTI:
-      *rvmem_regp (state, insn.rd) = 
-        ((i32)rvmem_reg (state, insn.rs1) < (i32)insn.imm) ? 1 : 0;
+      *rvmem_regp (state, insn.rd)
+        = ((i32)rvmem_reg (state, insn.rs1) < (i32)insn.imm) ? 1 : 0;
       break;
     case RV_INSN__SLTIU:
       *rvmem_regp (state, insn.rd)
@@ -299,16 +310,17 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       break;
     }
     case RV_INSN__DIV:
-      *rvmem_regp (state, insn.rd) = (iword_t)rvmem_reg (state, insn.rs1)
-        / (iword_t)rvmem_reg (state, insn.rs2);
+      *rvmem_regp (state, insn.rd)
+        = (i32)rvmem_reg (state, insn.rs1) / (i32)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__DIVU:
       *rvmem_regp (state, insn.rd)
         = rvmem_reg (state, insn.rs1) / rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__REM:
-      *rvmem_regp (state, insn.rd) = (iword_t)rvmem_reg (state, insn.rs1)
-        % (iword_t)rvmem_reg (state, insn.rs2);
+      *rvmem_regp (state, insn.rd)
+        = (iword_t)rvmem_reg (state, insn.rs1)
+          % (iword_t)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__REMU:
       *rvmem_regp (state, insn.rd)
@@ -324,8 +336,8 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
             *rvmem_at_ty (u32, state, rvmem_reg (state, insn.rs1) + insn.imm));
           break;
         case RISCV_FLTFUNC_DOUBLE:
-          *rvmem_fregp (state, insn.rd)
-            = *rvmem_at_ty (u64, state, rvmem_reg (state, insn.rs1) + insn.imm);
+          *rvmem_fregp (state, insn.rd) = *rvmem_at_ty (
+            u64, state, rvmem_reg (state, insn.rs1) + insn.imm);
           break;
         default:
           __builtin_unreachable ();

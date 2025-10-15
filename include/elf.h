@@ -52,6 +52,9 @@
 #define PROG_STACK_SIZE (1024 * 1024)
 #define PROG_HEAP_SIZE  (1024 * 1024)
 
+#define REGION_TAG_STACK  ("STACK")
+#define REGION_TAG_HEAP   ("HEAP")
+
 typedef u32 Elf32_Addr;
 typedef u16 Elf32_Half;
 typedef u32 Elf32_Off;
@@ -106,7 +109,11 @@ struct elf_load_region
 {
   u32 vma_base;
   u8* mem_base;
-  u32 size;
+  /* Two values for regions like the HEAP: `sz_alloc` to determine break, and
+   * `sz_reserved` for total capacity. Only `sz_reserved` _must_ be correctly
+   * set.
+   */
+  u32 sz_alloc, sz_reserved;
   const char* tag;
 };
 
@@ -121,4 +128,6 @@ typedef struct elf_context
 elfctx_t elf_init (u8* const bytes, size_t length);
 u8* elf_vma_to_mem (elfctx_t ctx, u32 ptr);
 u32 elf_mem_to_vma (elfctx_t ctx, u8* ptr);
+struct elf_load_region* elf_get_heap_region (elfctx_t ctx);
+struct elf_load_region* elf_get_stack_region (elfctx_t ctx);
 void elf_free (elfctx_t ctx);

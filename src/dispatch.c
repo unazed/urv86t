@@ -25,7 +25,7 @@ rvemu_dispatch_syscall (rvstate_t state)
    */
 
   auto syscall_no = state->regs[17];
-  printf (
+  rvtrbk_debug (
     "invoked syscall (%" PRIu16 ", %s) at 0x%" PRIx32 "\n",
     syscall_no, repr_syscall_map[syscall_no], state->pc);
   
@@ -48,8 +48,17 @@ rvemu_dispatch_syscall (rvstate_t state)
     case RV_SYSCALL__EXIT:
       rvsysc_exit (state, *REGARGPn(0));
       return;
+    case RV_SYSCALL__FSTAT:
+    {
+      void* buff = rvmem_at (state, *REGARGPn(1));
+      *REGARGPn(0) = rvsysc_fstat (state, *REGARGPn(0), buff);
+      break;
+    }
+    case RV_SYSCALL__BRK:
+      *REGARGPn(0) = rvsysc_brk (state, *REGARGPn(1));
+      break;
     default:
-      rvtrbk_debug ("unrecognized syscall\n");
+      printf ("unrecognized syscall, suspending emulator...\n");
       state->suspended = true;
       return;
   }

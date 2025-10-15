@@ -10,7 +10,8 @@ elf_vma_to_mem (elfctx_t ctx, u32 ptr)
   for (size_t i = 0; i < ctx->nr_regions; ++i)
   {
     auto region = &ctx->load_regions[i];
-    if ((region->vma_base > ptr) || (ptr >= region->vma_base + region->size))
+    if ((region->vma_base > ptr)
+        || (ptr >= region->vma_base + region->sz_reserved))
       continue;
     u8* mem_addr = region->mem_base + (ptr - region->vma_base);
     // rvtrbk_debug ("VMA (#%zu) 0x%" PRIx32 " to MEM %p\n", i, ptr, mem_addr);
@@ -25,7 +26,8 @@ elf_mem_to_vma (elfctx_t ctx, u8* ptr)
   for (size_t i = 0; i < ctx->nr_regions; ++i)
   {
     auto region = &ctx->load_regions[i];
-    if ((region->mem_base > ptr) || (ptr >= region->mem_base + region->size))
+    if ((region->mem_base > ptr)
+        || (ptr >= region->mem_base + region->sz_reserved))
       continue;
     word_t vma_addr = region->vma_base + (ptr - region->mem_base);
     rvtrbk_debug ("MEM %p to VMA (#%zu) 0x%" PRIx32 "\n", ptr, i, vma_addr);
@@ -213,14 +215,14 @@ elf_init (u8* const bytes, size_t length)
       ph_idx, phdr->p_offset, phdr->p_memsz, phdr->p_vaddr, phdr->p_filesz);
     auto region = &ctx->load_regions[ph_count - 2];
     region->vma_base = phdr->p_vaddr;
-    region->size = phdr->p_memsz;
-    if ((region->mem_base = calloc (1, region->size)) == NULL)
+    region->sz_reserved = phdr->p_memsz;
+    if ((region->mem_base = calloc (1, region->sz_reserved)) == NULL)
       rvtrbk_fatal ("failed to allocate context LOAD region\n");
     region->mem_base = memcpy (
       region->mem_base, bytes + phdr->p_offset, phdr->p_filesz);
     region->tag = "LOAD";
     rvtrbk_debug (
-      "\t-\tallocated %" PRIu32" byte region to %p\n", region->size,
+      "\t-\tallocated %" PRIu32" byte region to %p\n", region->sz_reserved,
       region->mem_base);
     ph_count++;
   }
@@ -247,20 +249,46 @@ elf_init (u8* const bytes, size_t length)
   }
 
   auto heap = &ctx->load_regions[ph_count - 2];
-  heap->size = PROG_HEAP_SIZE;
-  heap->mem_base = calloc (1, heap->size);
+  heap->sz_reserved = PROG_HEAP_SIZE;
+  heap->mem_base = calloc (1, heap->sz_reserved);
   heap->vma_base = bss_start + bss_size;
-  heap->tag = "HEAP";
+  heap->tag = REGION_TAG_HEAP;
 
   auto stack = &ctx->load_regions[ph_count - 1];
   stack->mem_base = calloc (1, PROG_STACK_SIZE);
-  stack->size = PROG_STACK_SIZE;
+  stack->sz_reserved = PROG_STACK_SIZE;
   stack->vma_base = heap->vma_base + PROG_HEAP_SIZE;
-  stack->tag = "STACK";
+  stack->tag = REGION_TAG_STACK;
+
   ctx->bp = stack->vma_base;
-  ctx->sp = stack->vma_base + stack->size - 1; 
+  ctx->sp = stack->vma_base + stack->sz_reserved - 1; 
 
   return ctx;
+}
+
+static inline struct elf_load_region*
+elf_get_region_by_tag (elfctx_t ctx, const char* const tag)
+{
+  for (size_t i = 0; i < ctx->nr_regions; ++i)
+  {
+    auto region = &ctx->load_regions[i];
+    if ((region->tag == NULL) || strcmp (region->tag, tag))
+      continue;
+    return region;
+  }
+  return NULL;
+}
+
+struct elf_load_region*
+elf_get_heap_region (elfctx_t ctx)
+{
+  return elf_get_region_by_tag (ctx, REGION_TAG_HEAP);
+}
+
+struct elf_load_region*
+elf_get_stack_region (elfctx_t ctx)
+{
+  return elf_get_region_by_tag (ctx, REGION_TAG_STACK);
 }
 
 void

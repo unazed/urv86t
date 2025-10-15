@@ -8,7 +8,7 @@ CFG_DEFS := $(foreach cfg,$(filter CFG_%,$(.VARIABLES)),-D$(cfg))
 CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS)
 
 OBJ = $(SOURCES:src/%.c=build/%.o)
-SOURCES = $(wildcard src/*.c)
+SOURCES = $(wildcard src/*.c) $(wildcard src/insn/*.c)
 
 all: build/urv86t
 

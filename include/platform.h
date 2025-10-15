@@ -21,7 +21,10 @@
     || ((n) == RISCV_INSN_I__ENV)   || ((n) == RISCV_INSN_I__FLOAT) \
   )
 
-#define RISCV_INSN_OPCOND__R(n) ((n) == 0b0110011)
+#define RISCV_INSN_R__REG   (0b0110011)
+#define RISCV_INSN_R__FLOAT (0b1010011)
+#define RISCV_INSN_OPCOND__R(n) \
+  (((n) == RISCV_INSN_R__REG) || ((n) == RISCV_INSN_R__FLOAT))
 
 #define RISCV_INSN_S__REG   (0b0100011)
 #define RISCV_INSN_OPCOND__S(n) \

@@ -96,6 +96,7 @@ main (int argc, char** argv)
     goto clean;
   }
 
+  /*
   rvtrbk_debug (
     "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
   struct rvbkpt_ev entry_bkpt = {
@@ -107,6 +108,7 @@ main (int argc, char** argv)
   };
 
   rvbkpt_add (state, &entry_bkpt);
+  */
 
   while (rvemu_step (state))
   {

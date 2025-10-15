@@ -68,7 +68,8 @@ rvemu_dispatch_syscall (rvstate_t state)
 void
 rvemu_dispatch_debug (rvstate_t state)
 {
-  (void)state; /* TODO: implement breakpoint? */
+  /* TODO: Perhaps if BKPT ext. is enabled, transfer control. */
+  (void)state;
   rvtrbk_debug ("invoked debug breakpoint\n");
 }
 
@@ -280,6 +281,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FENCE:
     case RV_INSN__FENCE_I:
       rvtrbk_diagn (state, "unimplemented synch. instructions");
+      state->suspended = true;
       break;
 
     /* CSR insns. */
@@ -290,6 +292,7 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__CSRRSI:
     case RV_INSN__CSRRCI:
       rvtrbk_diagn (state, "unimplemented CSR. instructions");
+      state->suspended = true;
       break;
 
 #if RV32_HAS(EXT_M)
@@ -368,7 +371,6 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       }
       break;
     case RV_INSN__FMADDx:
-      /* TODO: implement, preferably before dying of old age */
     case RV_INSN__FMSUBx:
     case RV_INSN__FNMSUBx:
     case RV_INSN__FNMADDx:
@@ -386,7 +388,16 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FLTx:
     case RV_INSN__FLEx:
     case RV_INSN__FCLASSx:
+    case RV_INSN__FCVT_x_W:
+    case RV_INSN__FCVT_x_WU:
+    case RV_INSN__FCVT_W_x:
+    case RV_INSN__FCVT_WU_x:
+    case RV_INSN__FMV_X_W:
+    case RV_INSN__FMV_W_X:
+    case RV_INSN__FCVT_S_D:
+    case RV_INSN__FCVT_D_S:
       break;
+
 #endif
 #if RV32_HAS(EXT_C)
     case RV_INSN__C_NOP:
@@ -425,7 +436,9 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__C_FSDSP:
     case RV_INSN__C_SWSP:
     case RV_INSN__C_FSWSP:
-      __builtin_unreachable ();
+      rvtrbk_diagn (state, "Compressed insns. not implemented\n");
+      state->suspended = true;
+      break;
 #endif
     case RV_INSN__INVALID:
       __builtin_unreachable ();

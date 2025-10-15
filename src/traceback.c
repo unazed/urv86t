@@ -41,7 +41,7 @@ rvtrbk_print_dump (rvstate_t state)
     auto region = &state->mem->load_regions[i];
     printf (
       "#%zu: 0x%08" PRIx32 "\t-> 0x%08" PRIx32 " (%s)\n",
-      i, region->vma_base, region->vma_base + region->size,
+      i, region->vma_base, region->vma_base + region->sz_reserved,
       region->tag? region->tag: "untagged");
   }
 }

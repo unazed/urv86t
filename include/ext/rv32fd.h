@@ -37,7 +37,9 @@ typedef struct rvstate* rvstate_t;
 #define RISCV_FREGCOUNT   (32)
 #define RISCV_FLEN_BYTES  (8)
 
-#define RISCV_INSN_OPCOND__R4(n)  ((n) == 0b1000011)
+#define RISCV_INSN_OPCOND__R4(n) \
+  (  ((n) == 0b1000011) || ((n) == 0b1000111) \
+  || ((n) == 0b1001011) || ((n) == 0b1001111))
 #define RISCV_INSN_R__FLOAT       (0b1010011)
 #define RISCV_INSN_I__FLOAT       (0b0000111)
 #define RISCV_INSN_S__FLOAT       (0b0100111)

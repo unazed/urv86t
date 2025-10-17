@@ -148,7 +148,7 @@ main (int argc, char** argv)
     "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
   struct rvbkpt_ev entry_bkpt = {
     .pc_cond = {
-      .val = elf_ctx->entry_point,
+      .val = 0x10954,
       .comp = BKPTCOMP_EQ,
     },
     .one_shot = true, .active = true

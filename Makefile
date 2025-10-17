@@ -1,12 +1,13 @@
 CC = gcc
 OBJCOPY = objcopy
 
-COMMON_CFLAGS = -Wall -Werror -Wextra -Iinclude/ -ggdb -Wno-error=switch
+COMMON_CFLAGS = -Wall -Werror -Wextra -Iinclude/ -I/usr/include/ -ggdb \
+								-Wno-error=switch -Wno-error=strict-aliasing -std=gnu23 -O0
 
 CFG_DEFS := $(foreach cfg,$(filter CFG_%,$(.VARIABLES)),-D$(cfg))
 LDFLAGS = -largp -lm
 
-CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS) -DDEBUG -DVERBOSE
+CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS)
 
 OBJ = $(SOURCES:src/%.c=build/%.o)
 SOURCES = $(wildcard src/*.c) $(wildcard src/insn/*.c) \

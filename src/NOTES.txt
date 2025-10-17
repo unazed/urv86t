@@ -1,0 +1,4 @@
+- Implement CSR instructions
+- Implement rest of FP instructions
+- Implement proper FP instruction formatting (viz. `asm/context.c`)
+- Implement compressed instruction support

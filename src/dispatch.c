@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "emu.h"
+#include "ext/rv32fd.h"
 #include "traceback.h"
 #include "syscall.h"
 
@@ -45,7 +46,7 @@ rvemu_dispatch_syscall (rvstate_t state)
       break;
     }
     case RV_SYSCALL__BRK:
-      *REGARGPn(0) = rvsysc_brk (state, *REGARGPn(1));
+      *REGARGPn(0) = rvsysc_brk (state, *REGARGPn(0));
       break;
     default:
       printf ("unrecognized syscall, suspending emulator...\n");
@@ -170,15 +171,15 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
         = *(u16 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm);
       break;
     case RV_INSN__SB:
-      *(i8 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
+      *rvmem_at_ty (i8, state, rvmem_reg (state, insn.rs1) + insn.imm)
         = (i8)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SH:
-      *(i16 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
+      *rvmem_at_ty (i16, state, rvmem_reg (state, insn.rs1) + insn.imm)
         = (i16)rvmem_reg (state, insn.rs2);
       break;
     case RV_INSN__SW:
-      *(i32 *)rvmem_at (state, rvmem_reg (state, insn.rs1) + insn.imm)
+      *rvmem_at_ty (i32, state, rvmem_reg (state, insn.rs1) + insn.imm)
         = (i32)rvmem_reg (state, insn.rs2);
       break;
 
@@ -598,14 +599,91 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       break;
 
     case RV_INSN__FMINx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (
+            state, insn.rd,
+            fminf (
+              rvfloat_read_f32 (state, insn.rs1),
+              rvfloat_read_f32 (state, insn.rs2)));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (
+            state, insn.rd,
+            fmin (
+              rvfloat_read_f64 (state, insn.rs1),
+              rvfloat_read_f64 (state, insn.rs2)));
+          break;
+      }
+      break;
     case RV_INSN__FMAXx:
-
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (
+            state, insn.rd,
+            fmaxf (
+              rvfloat_read_f32 (state, insn.rs1),
+              rvfloat_read_f32 (state, insn.rs2)));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (
+            state, insn.rd,
+            fmax (
+              rvfloat_read_f64 (state, insn.rs1),
+              rvfloat_read_f64 (state, insn.rs2)));
+          break;
+      }
+      break;
     case RV_INSN__FEQx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f32 (state, insn.rs1)
+              == rvfloat_read_f32 (state, insn.rs2);
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f64 (state, insn.rs1)
+              == rvfloat_read_f64 (state, insn.rs2);
+          break;
+      }
+      break;
     case RV_INSN__FLTx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f32 (state, insn.rs1)
+              < rvfloat_read_f32 (state, insn.rs2);
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f64 (state, insn.rs1)
+              < rvfloat_read_f64 (state, insn.rs2);
+          break;
+      }
+      break;
     case RV_INSN__FLEx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f32 (state, insn.rs1)
+              <= rvfloat_read_f32 (state, insn.rs2);
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          *rvmem_regp (state, insn.rd)
+            = rvfloat_read_f64 (state, insn.rs1)
+              <= rvfloat_read_f64 (state, insn.rs2);
+          break;
+      }
+      break;
 
     case RV_INSN__FCLASSx:
-      rvtrbk_debug ("unimplemented fp insn.!\n");
+      rvtrbk_diagn (state, "unimplemented fp insn.!");
       state->suspended = true;
       return;
 
@@ -628,11 +706,11 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
       switch (insn.funct)
       {
         case RISCV_FLTFUNC_SINGLE:
-          rvfloat_cvt_f32_from_i32 (
+          rvfloat_cvt_f32_from_u32 (
             state, insn.rd, rvmem_reg (state, insn.rs1));
           break;
         case RISCV_FLTFUNC_DOUBLE:
-          rvfloat_cvt_f64_from_i32 (
+          rvfloat_cvt_f64_from_u32 (
             state, insn.rd, rvmem_reg (state, insn.rs1));
           break;
         default:

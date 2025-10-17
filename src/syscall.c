@@ -1,8 +1,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "syscall.h"
-#include "traceback.h"
 #include "elf.h"
 
 RVSYSC_DEFN(rvsysc_read, iword_t fd, void* buff, word_t count)
@@ -38,6 +39,8 @@ RVSYSC_DEFN(rvsysc_brk, word_t brk)
   u32 min_brk = heap->vma_base,
       current_brk = min_brk + heap->sz_alloc,
       max_brk = heap->vma_base + heap->sz_reserved;
+  if (!brk)
+    return current_brk;
   if ((brk < min_brk) || (brk > max_brk))
     return current_brk;
   heap->sz_alloc += brk - current_brk;

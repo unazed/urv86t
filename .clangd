@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - -IC:\Users\unaze\OneDrive\Desktop\risc-v\include
+    - -IE:\MSYS64\usr\include
+    - --target=x86_64-w64-mingw32
+    - -Wall -Wextra -Werror -Wpedantic -Wno-error=switch -DDEBUG -DVERBOSE 
+    - -Weverything -Wno-c23-extensions
+  Compiler: gcc

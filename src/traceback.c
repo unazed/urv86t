@@ -7,6 +7,7 @@ void
 rvtrbk_fatal (const char* const msg)
 {
   fprintf (stderr, "E: %s", msg);
+  __builtin_trap ();
   exit (EXIT_FAILURE);
 }
 

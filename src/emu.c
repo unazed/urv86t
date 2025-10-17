@@ -29,10 +29,7 @@ rvstate_fetch (rvstate_t state)
 {
   auto insn_ptr = elf_vma_to_mem (state->mem, state->pc);
   if (insn_ptr == NULL)
-  {
-    rvtrbk_debug ("Failed to fetch from pc: 0x%" PRIx32 "\n", state->pc);
-    return 0;
-  }
+    rvtrbk_fatal ("PC-fetch out of bounds\n");
   return *(word_t *)insn_ptr;
 }
 
@@ -41,11 +38,7 @@ rvmem_at (rvstate_t state, u32 addr)
 {
   void* ptr = (void *)elf_vma_to_mem (state->mem, addr);
   if (ptr == NULL)
-  {
-    rvtrbk_debug ("tried to fetch out of bounds insn.: 0x%" PRIx32 "\n", addr);
-    state->suspended = true;
-    return NULL;
-  }
+    rvtrbk_fatal ("tried to access out of bounds\n");
   return ptr;
 }
 

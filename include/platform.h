@@ -22,7 +22,6 @@
   )
 
 #define RISCV_INSN_R__REG   (0b0110011)
-#define RISCV_INSN_R__FLOAT (0b1010011)
 #define RISCV_INSN_OPCOND__R(n) \
   (((n) == RISCV_INSN_R__REG) || ((n) == RISCV_INSN_R__FLOAT))
 

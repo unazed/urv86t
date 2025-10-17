@@ -15,6 +15,7 @@ rvasm_emit (rvstate_t state, struct insn_argspec_pair pair)
 {
   (void)state;
   auto insn = pair.insn;
+  (void)insn;
   auto argspec = pair.argspec;
 
   switch (argspec)

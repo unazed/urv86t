@@ -34,21 +34,75 @@ rvdec_Rty__1 (rvstate_t state, union insn_base insn)
 static inline struct insn_ty_argspec_pair
 rvdec_Rty__2 (rvstate_t state, union insn_base insn)
 {
-  (void)state;
-  switch (((insn.r.funct7 << 7) | insn.r.rs2) & ~0b000000100000)
+  switch ((insn.r.funct7 << 5) | insn.r.rs2)
   {
+    INSN_CASE_RET(0b0010000000001, RV_INSN__FCVT_S_D, RV_ARGSPEC__Fx_Fx_cvt);
+    INSN_CASE_RET(0b010000100000, RV_INSN__FCVT_D_S, RV_ARGSPEC__Fx_Fx_cvt);
+  }
+
+  switch (((insn.r.funct7 << 5) | insn.r.rs2) & ~0b000000100000)
+  {
+    /* F/D conversion insns.*/
     INSN_CASE_RET(0b110000000000, RV_INSN__FCVT_W_x, RV_ARGSPEC__R32_Fx);
     INSN_CASE_RET(0b110000000001, RV_INSN__FCVT_WU_x, RV_ARGSPEC__R32_Fx);
     INSN_CASE_RET(0b110100000000, RV_INSN__FCVT_x_W, RV_ARGSPEC__Fx_R32);
     INSN_CASE_RET(0b110100000001, RV_INSN__FCVT_x_W, RV_ARGSPEC__Fx_R32);
-    /* F/D-specific insns.*/
-    INSN_CASE_RET(0b111000000000, RV_INSN__FMV_X_W, RV_ARGSPEC__R32_Fx);
+    /* - specific to either F- or D-insns. */
+    case 0b111000000000:
+      switch (insn.r.funct3)
+      {
+        INSN_CASE_RET(0b000, RV_INSN__FMV_X_W, RV_ARGSPEC__R32_Fx);
+        INSN_CASE_RET(0b001, RV_INSN__FCLASSx, RV_ARGSPEC__Fx_Fx);
+        default:
+          rvtrbk_diagn (state, "invalid fmv/fclass funct3 bit specifier\n");
+          return INVALID_INSN;
+      }
+      break;
     INSN_CASE_RET(0b111100000000, RV_INSN__FMV_W_X, RV_ARGSPEC__Fx_R32);
-    INSN_CASE_RET(0b010000000001, RV_INSN__FCVT_S_D, RV_ARGSPEC__Fx_Fx_cvt);
-    INSN_CASE_RET(0b010000100000, RV_INSN__FCVT_D_S, RV_ARGSPEC__Fx_Fx_cvt);
-    default:
-      return INVALID_INSN;
+
+    /* Unary operators */
+    INSN_CASE_RET(0b010110000000, RV_INSN__FSQRTx, RV_ARGSPEC__Fx_Fx);
   }
+
+  switch (insn.r.funct7 & ~0b1)
+  {
+    /* Binary operators */
+    INSN_CASE_RET(0b0000000, RV_INSN__FADDx, RV_ARGSPEC__Fx_Fx_Fx);
+    INSN_CASE_RET(0b0000100, RV_INSN__FSUBx, RV_ARGSPEC__Fx_Fx_Fx);
+    INSN_CASE_RET(0b0001000, RV_INSN__FMULx, RV_ARGSPEC__Fx_Fx_Fx);
+    INSN_CASE_RET(0b0001100, RV_INSN__FDIVx, RV_ARGSPEC__Fx_Fx_Fx);
+
+    /* Miscellaneous */
+    case 0b0010000:
+      switch (insn.r.funct3)
+      {
+        INSN_CASE_RET(0b000, RV_INSN__FSGNJx, RV_ARGSPEC__Fx_Fx_Fx);
+        INSN_CASE_RET(0b001, RV_INSN__FSGNJNx, RV_ARGSPEC__Fx_Fx_Fx);
+        INSN_CASE_RET(0b010, RV_INSN__FSGNJXx, RV_ARGSPEC__Fx_Fx_Fx);
+      }
+      break;
+    case 0b0010100:
+      switch (insn.r.funct3)
+      {
+        INSN_CASE_RET(0b000, RV_INSN__FMINx, RV_ARGSPEC__Fx_Fx_Fx);
+        INSN_CASE_RET(0b001, RV_INSN__FMAXx, RV_ARGSPEC__Fx_Fx_Fx);
+        default:
+          rvtrbk_diagn (state, "invalid min/max funct3 bit specifier\n");
+          return INVALID_INSN;
+      }
+      break;
+    case 0b1010000:
+      switch (insn.r.funct3)
+      {
+        INSN_CASE_RET(0b010, RV_INSN__FEQx, RV_ARGSPEC__Fx_Fx_Fx);
+        INSN_CASE_RET(0b001, RV_INSN__FLTx, RV_ARGSPEC__Fx_Fx_Fx);
+        INSN_CASE_RET(0b000, RV_INSN__FLEx, RV_ARGSPEC__Fx_Fx_Fx);
+      }
+      break;
+  }
+
+  rvtrbk_diagn (state, "invalid floating point encoding ");
+  return INVALID_INSN;
 }
 #endif
 

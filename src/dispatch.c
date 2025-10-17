@@ -1,18 +1,8 @@
+#include <math.h>
+
 #include "emu.h"
 #include "traceback.h"
 #include "syscall.h"
-
-static inline freg_t
-rvfloat_nanbox_saturate (u32 val)
-{
-  return (u64)val | 0xffffffff00000000ull;
-}
-
-static inline freg_t
-rvfloat_nanbox_unpack (u64 val)
-{
-  return (u32)(val & 0xffffffff);
-}
 
 void
 rvemu_dispatch_syscall (rvstate_t state)
@@ -370,36 +360,331 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
           __builtin_unreachable ();
       }
       break;
-    case RV_INSN__FMADDx:
-    case RV_INSN__FMSUBx:
-    case RV_INSN__FNMSUBx:
-    case RV_INSN__FNMADDx:
     case RV_INSN__FADDx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) + 
+            rvfloat_read_f32 (state, insn.rs2));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) + 
+            rvfloat_read_f64 (state, insn.rs2));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
     case RV_INSN__FSUBx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) -
+            rvfloat_read_f32 (state, insn.rs2));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) -
+            rvfloat_read_f64 (state, insn.rs2));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
     case RV_INSN__FMULx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) *
+            rvfloat_read_f32 (state, insn.rs2));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) *
+            rvfloat_read_f64 (state, insn.rs2));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
     case RV_INSN__FDIVx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) /
+            rvfloat_read_f32 (state, insn.rs2));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) /
+            rvfloat_read_f64 (state, insn.rs2));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
+    case RV_INSN__FMADDx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) *
+            rvfloat_read_f32 (state, insn.rs2) +
+            rvfloat_read_f32 (state, insn.rs3));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) *
+            rvfloat_read_f64 (state, insn.rs2) +
+            rvfloat_read_f64 (state, insn.rs3));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FMSUBx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            rvfloat_read_f32 (state, insn.rs1) *
+            rvfloat_read_f32 (state, insn.rs2) -
+            rvfloat_read_f32 (state, insn.rs3));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            rvfloat_read_f64 (state, insn.rs1) *
+            rvfloat_read_f64 (state, insn.rs2) -
+            rvfloat_read_f64 (state, insn.rs3));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FNMSUBx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            -rvfloat_read_f32 (state, insn.rs1) *
+            rvfloat_read_f32 (state, insn.rs2) +
+            rvfloat_read_f32 (state, insn.rs3));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            -rvfloat_read_f64 (state, insn.rs1) *
+            rvfloat_read_f64 (state, insn.rs2) +
+            rvfloat_read_f64 (state, insn.rs3));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FNMADDx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (state, insn.rd,
+            -rvfloat_read_f32 (state, insn.rs1) *
+            rvfloat_read_f32 (state, insn.rs2) -
+            rvfloat_read_f32 (state, insn.rs3));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (state, insn.rd,
+            -rvfloat_read_f64 (state, insn.rs1) *
+            rvfloat_read_f64 (state, insn.rs2) -
+            rvfloat_read_f64 (state, insn.rs3));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
     case RV_INSN__FSQRTx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (
+            state, insn.rd, sqrtf (rvfloat_read_f32 (state, insn.rs1)));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (
+            state, insn.rd, sqrt (rvfloat_read_f64 (state, insn.rs1)));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
     case RV_INSN__FSGNJx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (
+            state, insn.rd,
+            copysignf (
+              rvfloat_read_f32 (state, insn.rs1),
+              rvfloat_read_f32 (state, insn.rs2)));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (
+            state, insn.rd,
+            copysign (
+              rvfloat_read_f64 (state, insn.rs1),
+              rvfloat_read_f64 (state, insn.rs2)));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
     case RV_INSN__FSGNJNx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_write_f32 (
+            state, insn.rd,
+            copysignf (
+              rvfloat_read_f32 (state, insn.rs1),
+              -rvfloat_read_f32 (state, insn.rs2)));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_write_f64 (
+            state, insn.rd,
+            copysign (
+              rvfloat_read_f64 (state, insn.rs1),
+              -rvfloat_read_f64 (state, insn.rs2)));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
     case RV_INSN__FSGNJXx:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          {
+            f32 a = rvfloat_read_f32 (state, insn.rs1);
+            f32 b = rvfloat_read_f32 (state, insn.rs2);
+            u32 sign_xor
+              = (rvfloat_as_u32 (a) ^ rvfloat_as_u32 (b)) & 0x80000000;
+            rvfloat_write_f32 (
+              state, insn.rd,
+              rvfloat_as_f32 ((rvfloat_as_u32 (a) & 0x7FFFFFFF) | sign_xor));
+          }
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+        {
+          f64 a = rvfloat_read_f64 (state, insn.rs1);
+          f64 b = rvfloat_read_f64 (state, insn.rs2);
+          u64 sign_xor
+            = (rvfloat_as_u64 (a) ^ rvfloat_as_u64 (b)) & 0x8000000000000000ULL;
+          rvfloat_write_f64 (
+            state, insn.rd,
+            rvfloat_as_f64 (
+              (rvfloat_as_u64 (a) & 0x7FFFFFFFFFFFFFFFULL) | sign_xor));
+          break;
+        }
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+
     case RV_INSN__FMINx:
     case RV_INSN__FMAXx:
+
     case RV_INSN__FEQx:
     case RV_INSN__FLTx:
     case RV_INSN__FLEx:
+
     case RV_INSN__FCLASSx:
-    case RV_INSN__FCVT_x_W:
-    case RV_INSN__FCVT_x_WU:
-    case RV_INSN__FCVT_W_x:
-    case RV_INSN__FCVT_WU_x:
-    case RV_INSN__FMV_X_W:
-    case RV_INSN__FMV_W_X:
-    case RV_INSN__FCVT_S_D:
-    case RV_INSN__FCVT_D_S:
-      printf ("couldn't decode fp :(\n");
+      rvtrbk_debug ("unimplemented fp insn.!\n");
       state->suspended = true;
       return;
 
+    case RV_INSN__FCVT_x_W:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_cvt_f32_from_i32 (
+            state, insn.rd, (i32)rvmem_reg (state, insn.rs1));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_cvt_f64_from_i32 (
+            state, insn.rd, (i32)rvmem_reg (state, insn.rs1));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FCVT_x_WU:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          rvfloat_cvt_f32_from_i32 (
+            state, insn.rd, rvmem_reg (state, insn.rs1));
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          rvfloat_cvt_f64_from_i32 (
+            state, insn.rd, rvmem_reg (state, insn.rs1));
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FCVT_W_x:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          *rvmem_regp (state, insn.rd)
+            = (i32)rvfloat_read_f32 (state, insn.rs1);
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          *rvmem_regp (state, insn.rd)
+            = (i32)rvfloat_read_f64 (state, insn.rs1);
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FCVT_WU_x:
+      switch (insn.funct)
+      {
+        case RISCV_FLTFUNC_SINGLE:
+          *rvmem_regp (state, insn.rd)
+            = (u32)rvfloat_read_f32 (state, insn.rs1);
+          break;
+        case RISCV_FLTFUNC_DOUBLE:
+          *rvmem_regp (state, insn.rd)
+            = (u32)rvfloat_read_f64 (state, insn.rs1);
+          break;
+        default:
+          __builtin_unreachable ();
+      }
+      break;
+    case RV_INSN__FMV_X_W:
+      *rvmem_regp (state, insn.rd)
+        = rvfloat_nanbox_unpack (rvmem_freg (state, insn.rs1));
+      break;
+    case RV_INSN__FMV_W_X:
+      *rvmem_fregp (state, insn.rd)
+        = rvfloat_nanbox_saturate (rvmem_reg (state, insn.rs1));
+      break;
+    case RV_INSN__FCVT_S_D:
+      rvfloat_write_f32 (state, insn.rd, 
+        (f32)rvfloat_read_f64 (state, insn.rs1));
+      break;
+    case RV_INSN__FCVT_D_S:
+      rvfloat_write_f64 (state, insn.rd, 
+        (f64)rvfloat_read_f32 (state, insn.rs1));
+      break;
 #endif
 #if RV32_HAS(EXT_C)
     case RV_INSN__C_NOP:

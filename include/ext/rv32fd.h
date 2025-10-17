@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+typedef struct rvstate* rvstate_t;
+
 #define EXT_RV32FD_INSNS \
   RV_INSN__FLx, \
   RV_INSN__FSx, \
@@ -35,23 +37,26 @@
 #define RISCV_FREGCOUNT   (32)
 #define RISCV_FLEN_BYTES  (8)
 
-#define RISCV_INSN_OPCOND__R4(n) ((n) == 0b1000011)
-#define RISCV_INSN_I__FLOAT (0b0000111)
-#define RISCV_INSN_S__FLOAT (0b0100111)
-#define RISCV_FLTFUNC_SINGLE (0b010)
-#define RISCV_FLTFUNC_DOUBLE (0b011)
+#define RISCV_INSN_OPCOND__R4(n)  ((n) == 0b1000011)
+#define RISCV_INSN_R__FLOAT       (0b1010011)
+#define RISCV_INSN_I__FLOAT       (0b0000111)
+#define RISCV_INSN_S__FLOAT       (0b0100111)
+#define RISCV_FLTFUNC_SINGLE      (0b010)
+#define RISCV_FLTFUNC_DOUBLE      (0b011)
 
 typedef u64 freg_t;
 
-/*
-               funct7  rs2
-  fcvt.w.s    [1100000_00000] fcvt.w.d    [1100001_00000]
-  fcvt.wu.s   [1100000_00001] fcvt.wu.d   [1100001_00001]
-  fcvt.s.w    [1101000_00000] fcvt.d.w    [1101001_00000]
-  fcvt.s.wu   [1101000_00001] fcvt.d.wu   [1101001_00001]
-
-  fmv.x.w     [1110000_00000]
-  fmv.w.x     [1111000_00000]
-  fcvt.s.d    [0100000_00001]
-  fcvt.d.s    [0100001_00000]
-*/
+freg_t rvfloat_nanbox_saturate (u32 val);
+freg_t rvfloat_nanbox_unpack (u64 val);
+f32 rvfloat_read_f32 (rvstate_t state, u8 freg);
+f64 rvfloat_read_f64 (rvstate_t state, u8 freg);
+f64 rvfloat_as_f64 (u64 val);
+u64 rvfloat_as_u64(f64 val);
+f32 rvfloat_as_f32 (u32 val);
+u32 rvfloat_as_u32 (f32 val);
+void rvfloat_write_f32 (rvstate_t state, u8 freg, f32 val);
+void rvfloat_write_f64 (rvstate_t state, u8 freg, f64 val);
+void rvfloat_cvt_f32_from_i32 (rvstate_t state, u8 freg, i32 val);
+void rvfloat_cvt_f32_from_u32 (rvstate_t state, u8 freg, u32 val);
+void rvfloat_cvt_f64_from_i32 (rvstate_t state, u8 freg, i32 val);
+void rvfloat_cvt_f64_from_u32 (rvstate_t state, u8 freg, u32 val);

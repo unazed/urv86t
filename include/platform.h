@@ -117,6 +117,9 @@ typedef struct insn_
 {
   enum e_insn insn_ty;
   u8 rd, rs1, rs2;
+#if RV32_HAS(EXT_FD)
+  u8 rs3;
+#endif
   u16 funct;
   word_t imm;
 } insn_t;
@@ -140,7 +143,7 @@ union insn_base
     word_t funct3 : 3;
     word_t rs1 : 5;
     word_t rs2 : 5;
-    word_t funct2 : 2;
+    word_t zero : 2;
     word_t rs3 : 5;
   } r4;
 #endif

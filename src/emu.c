@@ -89,7 +89,10 @@ rvemu_step (rvstate_t state)
   state->regs[0] = 0;
   auto insn = rvdec_insn (state, rvstate_fetch (state));
   if (insn.insn_ty == RV_INSN__INVALID)
+  {
+    rvtrbk_error ("tried to decode invalid instruction\n");
     return false;
+  }
   rvemu_dispatch (state, insn);
   return true;
 }

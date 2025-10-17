@@ -32,8 +32,8 @@
   RV_INSN__FCVT_S_D, \
   RV_INSN__FCVT_D_S
 
-#define RISCV_FREGCOUNT (32)
-#define RISCV_FLEN_BYTES (8)
+#define RISCV_FREGCOUNT   (32)
+#define RISCV_FLEN_BYTES  (8)
 
 #define RISCV_INSN_OPCOND__R4(n) ((n) == 0b1000011)
 #define RISCV_INSN_I__FLOAT (0b0000111)
@@ -44,10 +44,12 @@
 typedef u64 freg_t;
 
 /*
+               funct7  rs2
   fcvt.w.s    [1100000_00000] fcvt.w.d    [1100001_00000]
   fcvt.wu.s   [1100000_00001] fcvt.wu.d   [1100001_00001]
   fcvt.s.w    [1101000_00000] fcvt.d.w    [1101001_00000]
   fcvt.s.wu   [1101000_00001] fcvt.d.wu   [1101001_00001]
+
   fmv.x.w     [1110000_00000]
   fmv.w.x     [1111000_00000]
   fcvt.s.d    [0100000_00001]

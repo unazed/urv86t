@@ -4,11 +4,12 @@ OBJCOPY = objcopy
 COMMON_CFLAGS = -Wall -Werror -Wextra -Iinclude/ -ggdb -Wno-error=switch
 
 CFG_DEFS := $(foreach cfg,$(filter CFG_%,$(.VARIABLES)),-D$(cfg))
+LDFLAGS = -largp
 
-CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS)
+CFLAGS ?= $(COMMON_CFLAGS) $(CFG_DEFS) -DVERBOSE -DDEBUG
 
 OBJ = $(SOURCES:src/%.c=build/%.o)
-SOURCES = $(wildcard src/*.c) $(wildcard src/insn/*.c)
+SOURCES = $(wildcard src/*.c) $(wildcard src/insn/*.c) $(wildcard src/asm/*.c)
 
 all: build/urv86t
 
@@ -17,6 +18,6 @@ build/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 build/urv86t: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS)
 
 -include $(OBJ:.o=.d)

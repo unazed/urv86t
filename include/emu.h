@@ -5,9 +5,15 @@
 #define rvmem_at_ty(ty, state, pos) (ty *)rvmem_at ((state), (pos))
 
 typedef struct elf_context* elfctx_t;
+typedef struct rvasm_ctx* rvasm_ctx_t;
 
 typedef struct rvstate
 {
+  struct
+  {
+    rvasm_ctx_t disasm;
+    /* TODO: LLVM/x86 contexts(?) */
+  } gen_ctx;
 #if RV32_HAS(EXT_FD)
   freg_t fregs[RISCV_FREGCOUNT];
 #endif
@@ -44,3 +50,6 @@ insn_t rvdec_insn (rvstate_t state, word_t bytes);
 
 extern const char* const repr_insn_map[];
 extern const char* const repr_reg_abi_map[];
+#if RV32_HAS(EXT_FD)
+extern const char* const repr_freg_abi_map[];
+#endif

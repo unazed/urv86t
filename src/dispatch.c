@@ -396,7 +396,9 @@ rvemu_dispatch (rvstate_t state, insn_t insn)
     case RV_INSN__FMV_W_X:
     case RV_INSN__FCVT_S_D:
     case RV_INSN__FCVT_D_S:
-      break;
+      printf ("couldn't decode fp :(\n");
+      state->suspended = true;
+      return;
 
 #endif
 #if RV32_HAS(EXT_C)

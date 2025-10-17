@@ -1,116 +1,108 @@
 #include "insn/formats.h"
 
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__1 (rvstate_t state, union insn_base insn)
 {
   (void)state; (void)insn;
-  return RV_INSN__JALR;
+  return MAKE_INSN(RV_INSN__JALR, RV_ARGSPEC__R32_R32_pcrel);
 }
 
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__2 (rvstate_t state, union insn_base insn)
 {
   switch (insn.i.funct3)
   {
-    case 0b000: return RV_INSN__LB;
-    case 0b001: return RV_INSN__LH;
-    case 0b010: return RV_INSN__LW;
+    INSN_CASE_RET(0b000, RV_INSN__LB, RV_ARGSPEC__R32_m8_offs);
+    INSN_CASE_RET(0b001, RV_INSN__LH, RV_ARGSPEC__R32_m16_offs);
+    INSN_CASE_RET(0b010, RV_INSN__LW, RV_ARGSPEC__R32_m32_offs);
     /* no 0b011 case */
-    case 0b100: return RV_INSN__LBU;
-    case 0b101: return RV_INSN__LHU;
+    INSN_CASE_RET(0b100, RV_INSN__LBU, RV_ARGSPEC__R32_m8u_offs);
+    INSN_CASE_RET(0b101, RV_INSN__LHU, RV_ARGSPEC__R32_m16u_offs);
     default:
       rvtrbk_diagn (state, "unrecognised LOAD insn. function bits");
-      return RV_INSN__INVALID;
+      return INVALID_INSN;
   }
 }
 
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__3 (rvstate_t state, union insn_base insn)
 {
-  /* signed arithm. insns. */
   switch (insn.i.funct3)
   {
-    case 0b000: return RV_INSN__ADDI;
-    case 0b010: return RV_INSN__SLTI;
-    case 0b011: return RV_INSN__SLTIU;
-    case 0b100: return RV_INSN__XORI;
-    case 0b110: return RV_INSN__ORI;
-    case 0b111: return RV_INSN__ANDI;
+    INSN_CASE_RET(0b000, RV_INSN__ADDI, RV_ARGSPEC__R32_R32_i12);
+    INSN_CASE_RET(0b010, RV_INSN__SLTI, RV_ARGSPEC__R32_R32_i12);
+    INSN_CASE_RET(0b011, RV_INSN__SLTIU, RV_ARGSPEC__R32_R32_u12);
+    INSN_CASE_RET(0b100, RV_INSN__XORI, RV_ARGSPEC__R32_R32_u12);
+    INSN_CASE_RET(0b110, RV_INSN__ORI, RV_ARGSPEC__R32_R32_u12);
+    INSN_CASE_RET(0b111, RV_INSN__ANDI, RV_ARGSPEC__R32_R32_u12);
+
     /* I-format breaks `imm` up for the shift instructions */
     case 0b001:
-      if (!insn.x.funct7) 
-        return RV_INSN__SLLI;
+      if (!insn.x.funct7)
+        return MAKE_INSN(RV_INSN__SLLI, RV_ARGSPEC__R32_R32_u5);
       break;
     case 0b101:
       if (!insn.x.funct7)
-        return RV_INSN__SRLI;
+        return MAKE_INSN(RV_INSN__SRLI, RV_ARGSPEC__R32_R32_u5);
       if (insn.x.funct7 == 0b0100000)
-        return RV_INSN__SRAI;
+        return MAKE_INSN(RV_INSN__SRAI, RV_ARGSPEC__R32_R32_u5);
       rvtrbk_diagn (state, "unrecognised shift insn. function bits");
-      return RV_INSN__INVALID;
+      return INVALID_INSN;
   }
   __builtin_unreachable ();
 }
 
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__4 (rvstate_t state, union insn_base insn)
 {
-  /* fence/fence.i insns. */
   if (!insn.i.rd && !insn.i.funct3 && !insn.i.rs1
       && (insn.i.imm__11_0 == 0b000011111111))
-    return RV_INSN__FENCE;
+    return MAKE_INSN(RV_INSN__FENCE, RV_ARGSPEC__NONE);
   if (!insn.i.rd && (insn.i.funct3 == 0b001) && !insn.i.rs1
       && !insn.i.imm__11_0)
-    return RV_INSN__FENCE_I;
+    return MAKE_INSN(RV_INSN__FENCE_I, RV_ARGSPEC__NONE);
   rvtrbk_diagn (state, "unrecognised synch. instruction");
-  return RV_INSN__INVALID;
+  return INVALID_INSN;
 }
 
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__5 (rvstate_t state, union insn_base insn)
 {
-  /* ebreak/ecall csr* insns. */
   if (!insn.i.funct3 && !insn.i.rd && !insn.i.rs1)
   {
     if (!insn.i.imm__11_0)
-      return RV_INSN__ECALL;
+      return MAKE_INSN(RV_INSN__ECALL, RV_ARGSPEC__NONE);
     if (insn.i.imm__11_0 == 0b000000000001)
-      return RV_INSN__EBREAK;
+      return MAKE_INSN(RV_INSN__EBREAK, RV_ARGSPEC__NONE);
     rvtrbk_diagn (state, "unrecognised environment insn. immediate specifier");
-    return RV_INSN__INVALID;
+    return INVALID_INSN;
   }
   switch (insn.i.funct3)
   {
-    case 0b001:
-      return RV_INSN__CSRRW;
-    case 0b010:
-      return RV_INSN__CSRRS;
-    case 0b011:
-      return RV_INSN__CSRRC;
-    case 0b101:
-      return RV_INSN__CSRRWI;
-    case 0b110:
-      return RV_INSN__CSRRSI;
-    case 0b111:
-      return RV_INSN__CSRRCI;
+    INSN_CASE_RET(0b001, RV_INSN__CSRRW, RV_ARGSPEC__R32_csr_R32);
+    INSN_CASE_RET(0b010, RV_INSN__CSRRS, RV_ARGSPEC__R32_csr_R32);
+    INSN_CASE_RET(0b011, RV_INSN__CSRRC, RV_ARGSPEC__R32_csr_R32);
+    INSN_CASE_RET(0b101, RV_INSN__CSRRWI, RV_ARGSPEC__R32_csr_u5);
+    INSN_CASE_RET(0b110, RV_INSN__CSRRSI, RV_ARGSPEC__R32_csr_u5);
+    INSN_CASE_RET(0b111, RV_INSN__CSRRCI, RV_ARGSPEC__R32_csr_u5);
     default:
       rvtrbk_diagn (state, "unrecognised environment insn. function bits");
-      return RV_INSN__INVALID;
+      return INVALID_INSN;
   }
 }
 
 #if RV32_HAS(EXT_FD)
-enum e_insn
+static inline struct insn_ty_argspec_pair
 rvdec_Ity__6 (rvstate_t state, union insn_base insn)
 {
   switch (insn.i.funct3)
   {
     case RISCV_FLTFUNC_SINGLE:
     case RISCV_FLTFUNC_DOUBLE:
-      return RV_INSN__FLx;
+      return MAKE_INSN(RV_INSN__FLx, RV_ARGSPEC__Fx_mX_offs);
     default:
       rvtrbk_diagn (state, "unrecognised float-load function bits");
-      return RV_INSN__INVALID;
+      return INVALID_INSN;
   }
 }
 #endif
@@ -118,11 +110,13 @@ rvdec_Ity__6 (rvstate_t state, union insn_base insn)
 insn_t
 rvdec_Ity (rvstate_t state, union insn_base insn)
 {
-  insn_t canon_insn = {
-    .rd = insn.i.rd,
-    .rs1 = insn.i.rs1,
-    .funct = insn.i.funct3,
-    .imm = SIGNEXT(insn.i.imm__11_0, 1 << 11)
+  struct insn_argspec_pair pair = {
+    .insn = {
+      .rd = insn.i.rd,
+      .rs1 = insn.i.rs1,
+      .funct = insn.i.funct3,
+      .imm = SIGNEXT(insn.i.imm__11_0, 1 << 11)
+    }
   };
 
   switch (insn.i.opcode)
@@ -138,15 +132,6 @@ rvdec_Ity (rvstate_t state, union insn_base insn)
 #endif
   }
 
-  if (canon_insn.insn_ty != RV_INSN__INVALID)
-  {
-    rvtrbk_debug (
-      "\tI-type %s %s, %s, %" PRIi16 "\n",
-      repr_insn_map[canon_insn.insn_ty],
-      repr_reg_abi_map[canon_insn.rd], repr_reg_abi_map[canon_insn.rs1],
-      canon_insn.imm
-    );
-  }
-
-  return canon_insn;
+  rvasm_emit (state, pair);
+  return pair.insn;
 }

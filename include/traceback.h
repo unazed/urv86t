@@ -11,6 +11,12 @@
 # define rvtrbk_debug(fmt, ...)
 #endif
 
+#ifdef VERBOSE
+# define rvtrbk_verbose(fmt, ...) printf ("v: " fmt,##__VA_ARGS__)
+#else
+# define rvtrbk_verbose(fmt, ...)
+#endif
+
 #define rvtrbk_error(fmt, ...) fprintf (stderr, "e: "fmt,##__VA_ARGS__)
 
 __attribute__ (( noreturn ))

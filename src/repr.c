@@ -7,6 +7,29 @@
 #define INSN_MAP_ENTRY_S(insn, repr) [RV_INSN__##insn] = repr
 #define SYSC_MAP_ENTRY_S(insn, repr) [RV_SYSCALL__##sysc] = repr
 
+const char* const repr_reg_abi_map[] = {
+  "zero",
+  "ra",
+  "sp",
+  "gp",
+  "tp",
+  "t0", "t1", "t2",
+  "s0", "s1",
+  "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
+  "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
+  "t3", "t4", "t5", "t6"
+};
+
+#if RV32_HAS(EXT_FD)
+const char* const repr_freg_abi_map[] = {
+  "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7",
+  "fs0", "fs1",
+  "fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7",
+  "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11",
+  "ft8", "ft9", "ft10", "ft11"
+};
+#endif
+
 const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY(INVALID),
   INSN_MAP_ENTRY(LUI),
@@ -67,26 +90,34 @@ const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY(REMU),
 #endif
 #if RV32_HAS(EXT_FD)
-  INSN_MAP_ENTRY_S(FLx, "fl.x"),
-  INSN_MAP_ENTRY_S(FSx, "fs.x"),
-  INSN_MAP_ENTRY_S(FMADDx, "fmadd.x"),
-  INSN_MAP_ENTRY_S(FMSUBx, "fmsub.x"),
-  INSN_MAP_ENTRY_S(FNMADDx, "fnmadd.x"),
-  INSN_MAP_ENTRY_S(FNMSUBx, "fnmsub.x"),
-  INSN_MAP_ENTRY_S(FADDx, "fadd.x"),
-  INSN_MAP_ENTRY_S(FSUBx, "fsub.x"),
-  INSN_MAP_ENTRY_S(FMULx, "fmul.x"),
-  INSN_MAP_ENTRY_S(FDIVx, "fdiv.x"),
-  INSN_MAP_ENTRY_S(FSQRTx, "fsqrt.x"),
-  INSN_MAP_ENTRY_S(FSGNJx, "fsgnj.x"),
-  INSN_MAP_ENTRY_S(FSGNJNx, "fsgnjn.x"),
-  INSN_MAP_ENTRY_S(FSGNJXx, "fsgnjx.x"),
-  INSN_MAP_ENTRY_S(FMINx, "fmin.x"),
-  INSN_MAP_ENTRY_S(FMAXx, "fmax.x"),
-  INSN_MAP_ENTRY_S(FEQx, "feq.x"),
-  INSN_MAP_ENTRY_S(FLTx, "flt.x"),
-  INSN_MAP_ENTRY_S(FLEx, "fle.x"),
-  INSN_MAP_ENTRY_S(FCLASSx, "fclass.x"),
+  INSN_MAP_ENTRY_S(FLx, "FL.x"),
+  INSN_MAP_ENTRY_S(FSx, "FS.x"),
+  INSN_MAP_ENTRY_S(FMADDx, "FMADD.x"),
+  INSN_MAP_ENTRY_S(FMSUBx, "FMSUB.x"),
+  INSN_MAP_ENTRY_S(FNMADDx, "FNMADD.x"),
+  INSN_MAP_ENTRY_S(FNMSUBx, "FNMSUB.x"),
+  INSN_MAP_ENTRY_S(FADDx, "FADD.x"),
+  INSN_MAP_ENTRY_S(FSUBx, "FSUB.x"),
+  INSN_MAP_ENTRY_S(FMULx, "FMUL.x"),
+  INSN_MAP_ENTRY_S(FDIVx, "FDIV.x"),
+  INSN_MAP_ENTRY_S(FSQRTx, "FSQRT.x"),
+  INSN_MAP_ENTRY_S(FSGNJx, "FSGNJ.x"),
+  INSN_MAP_ENTRY_S(FSGNJNx, "FSGNJN.x"),
+  INSN_MAP_ENTRY_S(FSGNJXx, "FSGNJX.x"),
+  INSN_MAP_ENTRY_S(FMINx, "FMIN.x"),
+  INSN_MAP_ENTRY_S(FMAXx, "FMAX.x"),
+  INSN_MAP_ENTRY_S(FEQx, "FEQ.x"),
+  INSN_MAP_ENTRY_S(FLTx, "FLT.x"),
+  INSN_MAP_ENTRY_S(FLEx, "FLE.x"),
+  INSN_MAP_ENTRY_S(FCLASSx, "FCLASS.x"),
+  INSN_MAP_ENTRY_S(FCVT_x_W, "FCVT.x.W"),
+  INSN_MAP_ENTRY_S(FCVT_x_WU, "FCVT.x.WU"),
+  INSN_MAP_ENTRY_S(FCVT_W_x, "FCVT.W.x"),
+  INSN_MAP_ENTRY_S(FCVT_WU_x, "FCVT.WU.x"),
+  INSN_MAP_ENTRY_S(FMV_X_W, "FMV.X.W"),
+  INSN_MAP_ENTRY_S(FMV_W_X, "FMV.W.X"),
+  INSN_MAP_ENTRY_S(FCVT_S_D, "FCVT.S.D"),
+  INSN_MAP_ENTRY_S(FCVT_D_S, "FCVT.D.S"),
 #endif
 #if RV32_HAS(EXT_C)
   INSN_MAP_ENTRY_S(C_NOP, "c.nop"),
@@ -126,41 +157,6 @@ const char* const repr_insn_map[] = {
   INSN_MAP_ENTRY_S(C_SWSP, "c.swsp"),
   INSN_MAP_ENTRY_S(C_FSWSP, "c.fswsp"),
 #endif
-};
-
-const char* const repr_reg_abi_map[] = {
-  "zero",
-  "ra",
-  "sp",
-  "gp",
-  "tp",
-  "t0",
-  "t1",
-  "t2",
-  "s0",
-  "s1",
-  "a0",
-  "a1",
-  "a2",
-  "a3",
-  "a4",
-  "a5",
-  "a6",
-  "a7",
-  "s2",
-  "s3",
-  "s4",
-  "s5",
-  "s6",
-  "s7",
-  "s8",
-  "s9",
-  "s10",
-  "s11",
-  "t3",
-  "t4",
-  "t5",
-  "t6"
 };
 
 const char* const repr_syscall_map[] = {

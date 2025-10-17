@@ -9,13 +9,13 @@
 #endif
 
 #if RV32_HAS(EXT_M)
-# include "rv32m.h"
+# include "ext/rv32m.h"
 #endif
 
 #if RV32_HAS(EXT_C)
-# include "rv32c.h"
+# include "ext/rv32c.h"
 #endif
 
 #if RV32_HAS(EXT_FD)
-# include "rv32fd.h"
+# include "ext/rv32fd.h"
 #endif

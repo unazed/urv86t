@@ -2,10 +2,58 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <argp.h>
 
 #include "emu.h"
 #include "elf.h"
 #include "traceback.h"
+#include "asm/context.h"
+
+const char* argp_program_version = "urv86t 0.1";
+const char* argp_program_bug_address = "<mindaugas.taujanskas@proton.me>";
+
+static char doc[] = "The Ultimate RV-x86 Transpiler";
+static char args_doc[] = "RISCV-BINARY";
+
+static struct argp_option options[] = {
+  {NULL, 'S', "PATH", OPTION_ARG_OPTIONAL, "Output disassembly to file", 0},
+  {0}
+};
+
+struct arguments
+{
+  char *input_file;
+  int is_disasm;
+  char *disasm_path;
+};
+
+static error_t
+parse_opt (int key, char *arg, struct argp_state *state)
+{
+  struct arguments *arguments = state->input;
+  switch (key)
+  {
+    case 'S':
+      arguments->is_disasm = 1;
+      if (arg)
+        arguments->disasm_path = arg;
+      break;
+    case ARGP_KEY_ARG:
+      if (state->arg_num >= 1)
+        argp_usage (state);
+      arguments->input_file = arg;
+      break;
+    case ARGP_KEY_END:
+      if (state->arg_num < 1)
+        argp_usage (state);
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+  }
+  return 0;
+}
+
+static struct argp argp = {options, parse_opt, args_doc, doc, 0, 0, 0};
 
 void
 bkpt_user_loop (rvstate_t state, struct rvbkpt_ev* ev)
@@ -41,74 +89,72 @@ bkpt_user_loop (rvstate_t state, struct rvbkpt_ev* ev)
 int
 main (int argc, char** argv)
 {
-  if (argc < 2)
-  {
-    fprintf (stderr, "usage: %s <riscv-binary>\n", argv[0]);
-    return EXIT_FAILURE;
-  }
+  struct arguments arguments = {0};
+  
+  argp_parse (&argp, argc, argv, 0, 0, &arguments);
 
   elfctx_t elf_ctx = NULL;
   u8* emu_code = NULL;
   rvstate_t state = NULL;
 
-  auto fd = fopen (argv[1], "rb");
+  auto fd = fopen (arguments.input_file, "rb");
   if (fd == NULL)
-  {
-    fprintf (stderr, "failed to open file: '%s'\n", argv[1]);
-    return EXIT_FAILURE;
-  }
+    rvtrbk_fatal ("Failed to open binary file\n");
 
   fseek (fd, 0, SEEK_END);
   size_t fd_size = ftell (fd);
   rewind (fd);
 
   if ((emu_code = calloc (1, fd_size)) == NULL)
-  {
-    fprintf (stderr, "failed to allocate memory region for code\n");
-    goto clean;
-  }
+    rvtrbk_fatal ("Failed to allocate memory region for code\n");
 
   size_t nread;
   if ((nread = fread (emu_code, 1, fd_size, fd)) != fd_size)
-  {
-    fprintf (
-      stderr, "failed to read %zu bytes from file: %s (read %zu)\n",
-      fd_size, argv[1], nread);
-    goto clean;
-  }
+    rvtrbk_fatal ("Failed to read from binary file\n");
 
   elf_ctx = elf_init (emu_code, nread);
   if (elf_ctx == NULL)
-  {
-    fprintf (stderr, "failed to parse executable as ELF file\n");
-    goto clean;
-  }
+    rvtrbk_fatal ("Failed to parse ELF file\n");
   else if (!elf_ctx->bp)
-  {
-    fprintf (stderr, "failed to allocate stack/heap for emulator\n");
-    goto clean;
-  }
+    rvtrbk_fatal ("Failed to allocate stack/heap\n");
 
   state = rvstate_init (elf_ctx);
   if (state == NULL)
+    rvtrbk_fatal ("Failed to allocate emulation context\n");
+
+  if (arguments.is_disasm)
   {
-    fprintf (stderr, "failed to allocate emulation context\n");
-    goto clean;
+    size_t path_len;
+    if (arguments.disasm_path != NULL)
+      path_len = strlen (arguments.disasm_path);
+    else
+      path_len = strlen (arguments.input_file) + 2;
+    
+    char disasm_path[path_len + 1];
+    if (arguments.disasm_path != NULL)
+      strcpy (disasm_path, arguments.disasm_path);
+    else
+    {
+      strcpy (disasm_path, arguments.input_file);
+      strcat (disasm_path, ".S");
+    }
+    rvtrbk_debug ("Disassembly will be saved to %s\n", disasm_path);
+    if ((state->gen_ctx.disasm = rvasm_init (disasm_path)) == NULL)
+      rvtrbk_fatal ("Failed to open file for disassembly context\n");
   }
 
-  /*
+#if RV32_HAS(BKPT)
   rvtrbk_debug (
     "Setting breakpoint at pc: 0x%" PRIx32 "\n", elf_ctx->entry_point);
   struct rvbkpt_ev entry_bkpt = {
     .pc_cond = {
-      .val = 0x107a8,
-      .comp = BKPTCOMP_GT,
+      .val = elf_ctx->entry_point,
+      .comp = BKPTCOMP_EQ,
     },
     .one_shot = true, .active = true
   };
-
   rvbkpt_add (state, &entry_bkpt);
-  */
+#endif
 
   while (rvemu_step (state))
   {
@@ -121,8 +167,8 @@ main (int argc, char** argv)
   }
 
   rvtrbk_print_dump (state);
-
-clean:
+  if (state->gen_ctx.disasm != NULL)
+    rvasm_free (state->gen_ctx.disasm);
   rvstate_free (state);
   elf_free (elf_ctx);
   free (emu_code);
